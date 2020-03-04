@@ -247,13 +247,26 @@ max_coverage = 0
 # Readable indices
 FULL_NAME, NAME, LEN, COV, GC, START, RC_START, END, RC_END, START_MATCH, END_MATCH = range(11)
 
+
 # Iterate over contigs and form voc_ends dictionary
 for i, contig_name in enumerate(contigs_names):
+
+
+    contig_len = len(contigs_seqs[i])
 
     # SPAdes and A5 contigs should be processed in different way
     if not re.search(spades_patt, contig_name) is None:
         # Parse fasta header:
         cov = str(contig_name.split('_')[5]) # get coverage
+
+        # Collecting coverage statistics
+        flt_cov = float(cov)
+
+        total_length += contig_len
+        agv_coverage += flt_cov
+
+        min_coverage = min(min_coverage, flt_cov)
+        max_coverage = max(max_coverage, flt_cov)
         name = 'NODE_' + contig_name.split('_')[1] # get name in 'NODE_<NUMBER>' format
     elif not re.search(a5_patt, contig_name) is None:
         # Parse fasta header:
@@ -266,8 +279,6 @@ for i, contig_name in enumerate(contigs_names):
         platf_depend_exit(1)
     # end if
 
-    contig_len = len(contigs_seqs[i])
-
     # Calculating GC-content
     gc_content = 0
     for up_base, low_base in zip(('G', 'C', 'S'),('g', 'c', 's')):
@@ -275,7 +286,6 @@ for i, contig_name in enumerate(contigs_names):
     # end for
 
     gcContent = round((gc_content / len(contigs_seqs[i]) * 100), 2)
-
 
     # Some common info
     voc_ends.setdefault(i, []).append(contig_name)              # FULL_NAME
@@ -293,15 +303,6 @@ for i, contig_name in enumerate(contigs_names):
     # Ends' matches
     voc_ends.setdefault(i, []).append(list())                       # START_MATCH
     voc_ends.setdefault(i, []).append(list())                       # END_MATCH
-
-    # Collecting statistics
-    flt_cov = float(cov)
-
-    total_length += contig_len
-    agv_coverage += flt_cov
-
-    min_coverage = min(min_coverage, flt_cov)
-    max_coverage = max(max_coverage, flt_cov)
 # end for
 
 del contigs_seqs
@@ -313,19 +314,15 @@ N = len(contigs_names)
 exp_genome_len = total_length
 
 
-def find_overlap(seq1, seq2, mink, maxk):
+def find_overlap_s2s(seq1, seq2, mink, maxk):
     """
-    Function searches for identity between seq1 and seq2.
+    Function searches for identity between starts of seq1 and seq2.
     Function regards overlap of length [mink, maxk].
 
-    :param seq1: one sequence;
-    :type seq1: str;
-    :param seq2: another sequence;
-    :type seq2: str;
-    :param mink: minimun overlap;
-    :type mink: int;
-    :param maxk: maximum overlap;
-    :type maxk: int;
+    :param seq1: one sequence;  :type seq1: str;
+    :param seq2: another sequence;  :type seq2: str;
+    :param mink: minimun overlap;  :type mink: int;
+    :param maxk: maximum overlap;  :type maxk: int;
 
     Returns 0 if overlap is less than 'mink' and
       length of overlap (which is <= maxk) otherwise.
@@ -340,35 +337,81 @@ def find_overlap(seq1, seq2, mink, maxk):
     # end while
 
     return 0 if overlap == 0 else (mink + overlap - 1)
-# end def find_overlap
+# end def find_overlap_s2s
+
+
+def find_overlap_e2s(seq1, seq2, mink, maxk):
+    """
+    Function searches for identity between end of seq1 and start of seq2.
+    Function regards overlap of length [mink, maxk].
+
+    :param seq1: one sequence;  :type seq1: str;
+    :param seq2: another sequence;  :type seq2: str;
+    :param mink: minimun overlap;  :type mink: int;
+    :param maxk: maximum overlap;  :type maxk: int;
+
+    Returns 0 if overlap is less than 'mink' and
+      length of overlap (which is <= maxk) otherwise.
+    """
+
+    for i in range(mink, maxk+1):
+        if seq1[-i:] == seq2[:i]:
+            return i
+        # end if
+    # end for
+
+    return 0
+# end def find_overlap_e2s
+
+
+def find_overlap_e2e(seq1, seq2, mink, maxk):
+    """
+    Function searches for identity between ends of seq1 and seq2.
+    Function regards overlap of length [mink, maxk].
+
+    :param seq1: one sequence;  :type seq1: str;
+    :param seq2: another sequence;  :type seq2: str;
+    :param mink: minimun overlap;  :type mink: int;
+    :param maxk: maximum overlap;  :type maxk: int;
+
+    Returns 0 if overlap is less than 'mink' and
+      length of overlap (which is <= maxk) otherwise.
+    """
+
+    i = mink
+    overlap = 0
+
+    while seq1[-i:] == seq2[-i:] and i <= maxk:
+        overlap += 1
+        i += 1
+    # end while
+
+    return 0 if overlap == 0 else (mink + overlap - 1)
+# end def find_overlap_e2e
 
 
 print('\n' + '=' * 45)
 
 # Find matching ends of contigs
-print("Searching for matching ends of contigs...")
+print("Searching for matching ends of contigs...\n")
 log = "\nMatching ends of contigs:\n"
 
 for i in range(len(contigs_names)):
 
     if voc_ends[i][LEN] <= mink:
+        print("Other contigs are shorter than minimum k. Ignoring them.")
         break
     # end if
 
-    print('\n' + '-'*45 + '\n')
-    log += '\n' + '-'*45 + '\n'
-    print(voc_ends[i][NAME])
-    log += voc_ends[i][NAME] + '\n'
-
     # === Compare start to end of current contig ===
     # Such contigs probably are adjacent -- write this match to table
-    overlap = find_overlap(voc_ends[i][START],
-        voc_ends[i][END], mink, maxk)
+    overlap = find_overlap_e2s(voc_ends[i][END],
+        voc_ends[i][START], mink, maxk)
     if overlap != 0 and voc_ends[i][LEN] != overlap:
         voc_ends[i][START_MATCH].append("[Circle; ovl={}]".format(overlap))
         voc_ends[i][END_MATCH].append("[Circle; ovl={}]".format(overlap))
         exp_genome_len -= overlap
-        str_to_print = "{} is circular with overlap of {} b.p.".format(voc_ends[i][FULL_NAME],
+        str_to_print = "{} is circular with overlap of {} b.p.".format(voc_ends[i][NAME],
             overlap)
         print(str_to_print)
         log += str_to_print + '\n'
@@ -376,7 +419,7 @@ for i in range(len(contigs_names)):
 
     # === Compare start to rc-end of current contig ===
     # Contigs probably are not adjacent -- do not write to table
-    overlap = find_overlap(voc_ends[i][START],
+    overlap = find_overlap_s2s(voc_ends[i][START],
         voc_ends[i][RC_END], mink, maxk)
     if overlap != 0:
         str_to_print = "Start of {} is identical to it's own rc-end with overlap of {} b.p.".format(voc_ends[i][NAME],
@@ -392,8 +435,8 @@ for i in range(len(contigs_names)):
 
         # === Compare i-th start to j-th end ===
         # Such contigs probably are adjacent -- write this match to table
-        overlap = find_overlap(voc_ends[i][START],
-            voc_ends[j][END], mink, maxk)
+        overlap = find_overlap_e2s(voc_ends[j][END],
+            voc_ends[i][START], mink, maxk)
         if overlap != 0:
             voc_ends[i][START_MATCH].append("[Start=End({}); ovl={}]".format(voc_ends[j][NAME],
                 overlap))
@@ -408,7 +451,7 @@ for i in range(len(contigs_names)):
 
         # === Conpare i-th end to j-th start ===
         # Such contigs probably are adjacent -- write this match to table
-        overlap = find_overlap(voc_ends[i][END],
+        overlap = find_overlap_e2s(voc_ends[i][END],
             voc_ends[j][START], mink, maxk)
         if overlap != 0:
             voc_ends[i][END_MATCH].append("[End=Start({}); ovl={}]".format(voc_ends[j][NAME],
@@ -424,8 +467,8 @@ for i in range(len(contigs_names)):
 
         # === Compare i-th start to reverse-complement j-th start ===
         # Such contigs probably are adjacent -- write this match to table
-        overlap = find_overlap(voc_ends[i][START],
-            voc_ends[j][RC_START], mink, maxk)
+        overlap = find_overlap_e2s(voc_ends[j][RC_START],
+            voc_ends[i][START], mink, maxk)
         if overlap != 0:
             voc_ends[i][START_MATCH].append("[Start=RC_Start({}); ovl={}]".format(voc_ends[j][NAME],
                 overlap))
@@ -440,7 +483,7 @@ for i in range(len(contigs_names)):
 
         # === Conpare i-th end to reverse-complement j-th end ===
         # Such contigs probably are adjacent -- write this match to table
-        overlap = find_overlap(voc_ends[i][END],
+        overlap = find_overlap_e2s(voc_ends[i][END],
             voc_ends[j][RC_END], mink, maxk)
         if overlap != 0:
             voc_ends[i][END_MATCH].append("[End=RC_End({}); ovl={}]".format(voc_ends[j][NAME],
@@ -456,7 +499,7 @@ for i in range(len(contigs_names)):
 
         # === Compare i-th start to j-th start ===
         # Contigs probably are not adjacent -- do not write to table
-        overlap = find_overlap(voc_ends[i][START],
+        overlap = find_overlap_s2s(voc_ends[i][START],
             voc_ends[j][START], mink, maxk)
         if overlap != 0:
             str_to_print = "Start of {} matches start of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
@@ -467,7 +510,7 @@ for i in range(len(contigs_names)):
 
         # === Compare i-th end to j-th end ===
         # Contigs probably are not adjacent -- do not write to table
-        overlap = find_overlap(voc_ends[i][END],
+        overlap = find_overlap_e2e(voc_ends[i][END],
             voc_ends[j][END], mink, maxk)
         if overlap != 0:
             str_to_print = "End of {} matches end of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
@@ -478,7 +521,7 @@ for i in range(len(contigs_names)):
 
         # === Compare i-th start to reverse-complement j-th end ===
         # Contigs probably are not adjacent -- do not write to table
-        overlap = find_overlap(voc_ends[i][START],
+        overlap = find_overlap_s2s(voc_ends[i][START],
             voc_ends[j][RC_END], mink, maxk)
         if overlap != 0:
             str_to_print = "End of {} matches rc-start of {} with overlap of {} b.p.".format(voc_ends[j][NAME],
@@ -489,7 +532,7 @@ for i in range(len(contigs_names)):
 
         # === Compare i-th end to reverse-complement j-th start ===
         # Contigs probably are not adjacent -- do not write to table
-        overlap = find_overlap(voc_ends[i][END],
+        overlap = find_overlap_e2e(voc_ends[i][END],
             voc_ends[j][RC_START], mink, maxk)
         if overlap != 0:
             str_to_print = "End of {} matches rc-start of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
@@ -522,7 +565,12 @@ with open("{}{}combinator_output_FQ.tsv".format(prefix, '' if prefix == '' else 
         outfile.write(str(voc_ends[i][GC]) + '\t')
 
         # Calculate multiplicity of contig:
-        muliplty = round(float(voc_ends[i][COV])/float(voc_ends[0][COV]), 1)
+        if voc_ends[0][COV] != '-':
+            muliplty = round(float(voc_ends[i][COV])/float(voc_ends[0][COV]), 1)
+        else:
+            muliplty = '-'
+        # end if
+
         outfile.write(str(muliplty) + '\t\t') # leave empty field for annotation
 
         # Write information about discovered adjecency
