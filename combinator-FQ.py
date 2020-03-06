@@ -3,7 +3,7 @@
 
 __version__ = "1.0.a"
 # Year, month, day
-__last_update_date__ = "2020-03-02"
+__last_update_date__ = "2020-03-06"
 
 # |===== Check python interpreter version =====|
 
@@ -22,7 +22,7 @@ if sys.version_info.major < 3:
 # end if
 
 
-def platf_depend_exit(exit_code):
+def platf_depend_exit(exit_code=0):
     """
     Function asks to press ENTER press on Windows
         and exits after that.
@@ -41,27 +41,64 @@ def err_fmt(text=""):
     return "\n  \a!! - ERROR: " + text + '\n'
 # end def err_fmt
 
+def print_help():
+    print("\n    |=== combinator-FQ ===|")
+    print("Version {}. {} edition.\n".format(__version__, __last_update_date__))
+    print("Script identifies adjacent contigs in order to facilitate further scaffolding.")
+    print("""Pair of contigs are considered adjacent if terminus (start/end/reverse-complement start/reverse-complement end)
+    of one of them overlaps with terminus of another one.""")
+    print("Length of overlap is further referred to as 'k'.""")
+    print("Format of input: multi-fasta file containing contigs.")
+    print("Script supports contigs assembled by SPAdes and A5.")
+    print("\nScript generates output table 'combinator_output_FQ.tsv' of following format:")
+    print("#  Contig name  Length  Coverage  GC(%)  Multiplicity  Annotation  Start         End")
+    print("1  NODE_1...    304356  93.7155   34.12  1.2           [empty]     S=E(NODE_22)  E=S(NODE_26)\n")
+    print('='*15 + '\n' + "Options:")
+    print("  -h (--help): print help message;\n")
+    print("  -v (--version): print version;\n")
+    print("""  -i (--mink): minimum k (in b.p.) to consider.
+    Integer >0; Default if 21 b.p.\n""")
+    print("""  -a (--maxk): maximum k (in b.p.) to consider.
+    Integer >0; Default is 127 b.p.\n""")
+    print("""  -k (--k-mer-len): exact k (in b.p.). If specified, '-i' and '-a' options are ignored.
+    Integer >0; Disabled by default;\n""")
+    print("""  -p (--prefix): prefix of input output file.
+  Disabled by default;""")
+    print('='*15 + '\n' + "Examples:\n")
+    print("  ./combinator-FQ.py contigs.fasta -k 127")
+    print("  ./combinator-FQ.py another_contigs.fa -i 25 -a 300 -p another_contigs")
+    print('\n'+'-'*15)
+    print("""If input file is omitted in command, combinator will search for
+  first (in alphabetical order) fasta file in working directory and
+  ask for conformation to process it:\n""")
+    print("  ./combinator-FQ.py -i 25 -a 300")
+    print("\nIf 'contigs.fasta' is in working directory, combinator will print this:")
+    print("~"*10)
+    print("File 'contigs.fasta' is found and will be processed.")
+    print("""Press ENTER to process this file
+  or enter 'h' to see help massage,
+  or enter 'q' to quit:>> """)
+    print("~"*10)
+# end def print_help
+
+# Firstly check for information-providing flags
 
 if "-h" in sys.argv[1:] or "--help" in sys.argv[1:]:
-    print("combinator-FQ. Version {}. {} edition.".format(__version__, __last_update_date__))
-    print("Script screens ends of contigs for identity in order to facilitate further manual scaffolding.")
-    print("\nIt generates output table 'combinator_output_FQ.tsv' of following format:")
-    print("#  Contig name  Length  Coverage  GC(%)  Multiplicity  Annotation  Start      End")
-    print("1  NODE_2...    304356  93.7155   34.12  1.2                       S_NODE_22  S_NODE_26")
-    platf_depend_exit(0)
+    print_help()
+    platf_depend_exit()
 # end if
 
 if "-v" in sys.argv[1:] or "--version" in sys.argv[1:]:
     print(__version__)
-    platf_depend_exit(0)
+    platf_depend_exit()
 # end if
 
 
 import getopt
 
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "hvp:k:i:a:d:",
-        ["help", "version", "prefix=", "k-mer-len=", "mink=", "maxk=", "indir="])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "hvp:k:i:a:",
+        ["help", "version", "prefix=", "k-mer-len=", "mink=", "maxk="])
 except getopt.GetoptError as gerr:
     print( str(gerr) )
     platf_depend_exit(2)
@@ -77,21 +114,27 @@ maxk = 127
 
 is_fasta = lambda f: not re.search(r"(m)?f(ast)?a(\.gz)?$", f) is None
 
-
+# Determine fasta file to process:
 if len(args) == 0:
+    # If no input file is specified, search in working directory:
 
-    cont_fpaths = glob.glob( os.path.join(os.getcwd(), "*contigs.f*") )
+    cont_fpaths = sorted(glob.glob( os.path.join(os.getcwd(), "*contigs.f*") ))
     cont_fpaths = tuple(filter( is_fasta, cont_fpaths ))
 
     if len(cont_fpaths) != 0:
+        # If there is a fasta file in working directory -- process it
         contigs_fpath = cont_fpaths[0]
         print("File '{}' is found and will be processed.".format(contigs_fpath))
         error = True
         while error:
             reply = input("""Press ENTER to process this file
+  or enter 'h' to see help massage,
   or enter 'q' to quit:>> """)
             if reply == "":
                 error = False
+            elif reply == 'h':
+                print_help()
+                platf_depend_exit()
             elif reply == 'q':
                 sys.exit(0)
             else:
@@ -100,18 +143,21 @@ if len(args) == 0:
         # end while
 
     else:
-        print("No files considered as input fot combinator-FQ is are found.")
-        print("Exitting...")
-        platf_depend_exit(1)
+        # If there are no fasta files in working directory, just print help
+        print_help()
+        platf_depend_exit()
     # end if
 
 else:
+    # Check existance of specified file
     contigs_fpath = args[0]
     if not os.path.exists(contigs_fpath):
         print("File '{}' does not exist.".format(contigs_fpath))
         platf_depend_exit(1)
     # end if
 # end if
+
+# Parse command-line options
 
 for opt, arg in opts:
 
@@ -127,7 +173,7 @@ for opt, arg in opts:
             print("Your value: '{}'".format(arg))
             platf_depend_exit(1)
         else:
-            mink, maxk = arg, arg
+            mink, maxk = arg, arg # mink = k and maxk = k
         # end try
 
     elif opt in ("-i", "--mink"):
@@ -161,13 +207,19 @@ for opt, arg in opts:
     # end if
 # end for
 
-
+# Verify mink and maxk:
 if mink > maxk:
-    print(err_fmt("Minimum length of k-mer is greater than maximum length of k-mer."))
-    print("Values specified by you:")
-    print("Minimum length of k-mer: {}.".format(mink))
-    print("Maximum length of k-mer: {}.".format(maxk))
-    platf_depend_exit(1)
+    if not "-i" in sys.argv[1:] or not "--mink" in sys.argv[1:]:
+        mink = maxk
+    elif not "-a" in sys.argv[1:] or not "--maxk" in sys.argv[1:]:
+        maxk = mink
+    else:
+        print(err_fmt("Minimum length of k-mer is greater than maximum length of k-mer."))
+        print("Values specified by you:")
+        print("Minimum length of k-mer: {}.".format(mink))
+        print("Maximum length of k-mer: {}.".format(maxk))
+        platf_depend_exit(1)
+    # end if
 # end if
 
 
@@ -204,15 +256,16 @@ FORMATTING_FUNCS = (
     lambda line: line.decode("utf-8").strip()  # format gzipped line
 )
 
+print("\n  combinator-FQ (Version {}; {} edition)\n".format(__version__, __last_update_date__))
 
-print("\nFile '{}' if processing...".format(contigs_fpath))
+print("File '{}' if processing...".format(contigs_fpath))
 
 open_func = OPEN_FUNCS[ is_gzipped(contigs_fpath) ]
 fmt_func = FORMATTING_FUNCS[ is_gzipped(contigs_fpath) ]
 
 contigs_names = list() # list for names of contigs
 contigs_seqs = list() # list for sequences of contigs
-seq = ""
+seq = "" # temporary variable for collecting sequences
 
 with open_func(contigs_fpath) as contigs_file:
 
@@ -229,7 +282,8 @@ with open_func(contigs_fpath) as contigs_file:
 # end with
 
 contigs_seqs.append(seq) # append last sequence to list
-contigs_seqs = contigs_seqs[1:] # remove first empty string
+contigs_seqs = contigs_seqs[1:] # remove first string: it is empty
+del seq
 
 # Pattern that matches ID of seqeunce in FASTA file generated by SPAdes
 spades_patt = r"^NODE_[0-9]+"
@@ -238,6 +292,7 @@ a5_patt = r"^scaffold_[0-9]+"
 
 
 voc_ends = dict() # dictionary for collecting contigs data
+
 # Variables for collecting statistics
 total_length = 0
 agv_coverage = 0
@@ -250,7 +305,6 @@ FULL_NAME, NAME, LEN, COV, GC, START, RC_START, END, RC_END, START_MATCH, END_MA
 
 # Iterate over contigs and form voc_ends dictionary
 for i, contig_name in enumerate(contigs_names):
-
 
     contig_len = len(contigs_seqs[i])
 
@@ -270,7 +324,7 @@ for i, contig_name in enumerate(contigs_names):
         name = 'NODE_' + contig_name.split('_')[1] # get name in 'NODE_<NUMBER>' format
     elif not re.search(a5_patt, contig_name) is None:
         # Parse fasta header:
-        cov = '-' # A5 does not give us coverage
+        cov = '-' # A5 does not write coverage to fasta headers
         name = contig_name # use full header as name
     else:
         print("Format of fasta header not recognized:")
@@ -279,16 +333,15 @@ for i, contig_name in enumerate(contigs_names):
         platf_depend_exit(1)
     # end if
 
-    # Calculating GC-content
+    # Calculate GC-content
     gc_content = 0
     for up_base, low_base in zip(('G', 'C', 'S'),('g', 'c', 's')):
         gc_content += contigs_seqs[i].count(up_base) + contigs_seqs[i].count(low_base)
     # end for
-
     gcContent = round((gc_content / len(contigs_seqs[i]) * 100), 2)
 
     # Some common info
-    voc_ends.setdefault(i, []).append(contig_name)              # FULL_NAME
+    voc_ends.setdefault(i, []).append(contig_name)                  # FULL_NAME
     voc_ends.setdefault(i, []).append(name)                         # NAME
     voc_ends.setdefault(i, []).append(contig_len)                   # LEN
     voc_ends.setdefault(i, []).append(cov)                          # COV
@@ -309,8 +362,9 @@ del contigs_seqs
 
 # Total number of contigs
 N = len(contigs_names)
+
 # Expected length of the genome will be less than sum of contig lengths.
-# Length of overlapping sticky ends will be subtracted from total_length
+# Length of overlapping sticky ends will be subtracted from 'total_length'
 exp_genome_len = total_length
 
 
@@ -398,9 +452,12 @@ log = "\nMatching ends of contigs:\n"
 
 for i in range(len(contigs_names)):
 
+    print(contigs_names[i])
+
+    # Omit contigs shorter that 'mink'
     if voc_ends[i][LEN] <= mink:
-        print("Other contigs are shorter than minimum k. Ignoring them.")
-        break
+        print("Contig '{}' is shorter than mink({}). Omitting it...".format(voc_ends[i][NAME], mink))
+        continue
     # end if
 
     # === Compare start to end of current contig ===
@@ -438,9 +495,9 @@ for i in range(len(contigs_names)):
         overlap = find_overlap_e2s(voc_ends[j][END],
             voc_ends[i][START], mink, maxk)
         if overlap != 0:
-            voc_ends[i][START_MATCH].append("[Start=End({}); ovl={}]".format(voc_ends[j][NAME],
+            voc_ends[i][START_MATCH].append("[S=E({}); ovl={}]".format(voc_ends[j][NAME],
                 overlap))
-            voc_ends[j][END_MATCH].append("[End=Start({}); ovl={}]".format(voc_ends[i][NAME],
+            voc_ends[j][END_MATCH].append("[E=S({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
             exp_genome_len -= overlap
             str_to_print = "End of {} matches start of {} with overlap of {} b.p.".format(voc_ends[j][NAME],
@@ -454,9 +511,9 @@ for i in range(len(contigs_names)):
         overlap = find_overlap_e2s(voc_ends[i][END],
             voc_ends[j][START], mink, maxk)
         if overlap != 0:
-            voc_ends[i][END_MATCH].append("[End=Start({}); ovl={}]".format(voc_ends[j][NAME],
+            voc_ends[i][END_MATCH].append("[E=S({}); ovl={}]".format(voc_ends[j][NAME],
                 overlap))
-            voc_ends[j][START_MATCH].append("[Start=End({}); ovl={}]".format(voc_ends[i][NAME],
+            voc_ends[j][START_MATCH].append("[S=E({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
             exp_genome_len -= overlap
             str_to_print = "End of {} matches start of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
@@ -470,9 +527,9 @@ for i in range(len(contigs_names)):
         overlap = find_overlap_e2s(voc_ends[j][RC_START],
             voc_ends[i][START], mink, maxk)
         if overlap != 0:
-            voc_ends[i][START_MATCH].append("[Start=RC_Start({}); ovl={}]".format(voc_ends[j][NAME],
+            voc_ends[i][START_MATCH].append("[S=rc_S({}); ovl={}]".format(voc_ends[j][NAME],
                 overlap))
-            voc_ends[j][START_MATCH].append("[Start=RC_Start({}); ovl={}]".format(voc_ends[i][NAME],
+            voc_ends[j][START_MATCH].append("[S=rc_S({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
             exp_genome_len -= overlap
             str_to_print = "Start of {} matches rc-start of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
@@ -486,9 +543,9 @@ for i in range(len(contigs_names)):
         overlap = find_overlap_e2s(voc_ends[i][END],
             voc_ends[j][RC_END], mink, maxk)
         if overlap != 0:
-            voc_ends[i][END_MATCH].append("[End=RC_End({}); ovl={}]".format(voc_ends[j][NAME],
+            voc_ends[i][END_MATCH].append("[E=rc_E({}); ovl={}]".format(voc_ends[j][NAME],
                 overlap))
-            voc_ends[j][END_MATCH].append("[End=RC_End({}); ovl={}]".format(voc_ends[i][NAME],
+            voc_ends[j][END_MATCH].append("[E=rc_E({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
             exp_genome_len -= overlap
             str_to_print = "End of {} matches rc-end of {} with overlap of {} b.p.".format(voc_ends[j][NAME],
@@ -599,6 +656,5 @@ with open("{}{}combinator_output_FQ.tsv".format(prefix, '' if prefix == '' else 
     outfile.write('\n' + log) # append log to end of the file
 # end with
 
-
 print("\nTask is completed!")
-platf_depend_exit(0)
+platf_depend_exit()
