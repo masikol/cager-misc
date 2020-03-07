@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.0.a"
+__version__ = "1.1.a"
 # Year, month, day
-__last_update_date__ = "2020-03-06"
+__last_update_date__ = "2020-03-07"
 
 # |===== Check python interpreter version =====|
 
@@ -50,9 +50,12 @@ def print_help():
     print("Length of overlap is further referred to as 'k'.""")
     print("Format of input: multi-fasta file containing contigs.")
     print("Script supports contigs assembled by SPAdes and A5.")
-    print("\nScript generates output table 'combinator_output_FQ.tsv' of following format:")
-    print("#  Contig name  Length  Coverage  GC(%)  Multiplicity  Annotation  Start         End")
-    print("1  NODE_1...    304356  93.7155   34.12  1.2           [empty]     S=E(NODE_22)  E=S(NODE_26)\n")
+    print("""\nScript generates 3 output files:
+  1) table containing information about contigs adjecency ('<prefix>_combinator_adjacent_contigs.tsv').
+    See https://github.com/masikol/cager-misc/wiki/combinator-FQ for details of this output file format;
+  2) file, in which all matchings (not only adjacency-associated) are listed
+    ('<prefix>_combinator_full_matching_log.txt');
+  3) brief summary ('<prefix>_combinator_summary.txt');""")
     print('='*15 + '\n' + "Options:")
     print("  -h (--help): print help message;\n")
     print("  -v (--version): print version;\n")
@@ -62,10 +65,11 @@ def print_help():
     Integer >0; Default is 127 b.p.\n""")
     print("""  -k (--k-mer-len): exact k (in b.p.). If specified, '-i' and '-a' options are ignored.
     Integer >0; Disabled by default;\n""")
-    print("""  -p (--prefix): prefix of input output file.
-  Disabled by default;""")
+    print("""  -p (--prefix): prefix of output files.
+  By default they are named according to name of input file,
+  e.g. "contigs_combinartor_summary.txt" etc. for 'contigs.fasta';""")
     print('='*15 + '\n' + "Examples:\n")
-    print("  ./combinator-FQ.py contigs.fasta -k 127")
+    print("  ./combinator-FQ.py contigs.fasta -k 127\n")
     print("  ./combinator-FQ.py another_contigs.fa -i 25 -a 300 -p another_contigs")
     print('\n'+'-'*15)
     print("""If input file is omitted in command, combinator will search for
@@ -108,10 +112,6 @@ import re
 import os
 import glob
 
-prefix = ""
-mink = 21
-maxk = 127
-
 is_fasta = lambda f: not re.search(r"(m)?f(ast)?a(\.gz)?$", f) is None
 
 # Determine fasta file to process:
@@ -123,7 +123,7 @@ if len(args) == 0:
 
     if len(cont_fpaths) != 0:
         # If there is a fasta file in working directory -- process it
-        contigs_fpath = cont_fpaths[0]
+        contigs_fpath = os.path.abspath(cont_fpaths[0])
         print("File '{}' is found and will be processed.".format(contigs_fpath))
         error = True
         while error:
@@ -150,12 +150,17 @@ if len(args) == 0:
 
 else:
     # Check existance of specified file
-    contigs_fpath = args[0]
+    contigs_fpath = os.path.abspath(args[0])
     if not os.path.exists(contigs_fpath):
         print("File '{}' does not exist.".format(contigs_fpath))
         platf_depend_exit(1)
     # end if
 # end if
+
+
+prefix = re.search(r"(.+)\.(m)?f(ast)?a(\.gz)?", os.path.basename(contigs_fpath)).group(1)
+mink = 21
+maxk = 127
 
 # Parse command-line options
 
@@ -258,7 +263,7 @@ FORMATTING_FUNCS = (
 
 print("\n  combinator-FQ (Version {}; {} edition)\n".format(__version__, __last_update_date__))
 
-print("File '{}' if processing...".format(contigs_fpath))
+print("File '{}' is processing...".format(contigs_fpath))
 
 open_func = OPEN_FUNCS[ is_gzipped(contigs_fpath) ]
 fmt_func = FORMATTING_FUNCS[ is_gzipped(contigs_fpath) ]
@@ -295,7 +300,7 @@ voc_ends = dict() # dictionary for collecting contigs data
 
 # Variables for collecting statistics
 total_length = 0
-agv_coverage = 0
+avg_coverage = 0
 min_coverage = float("inf")
 max_coverage = 0
 
@@ -307,6 +312,7 @@ FULL_NAME, NAME, LEN, COV, GC, START, RC_START, END, RC_END, START_MATCH, END_MA
 for i, contig_name in enumerate(contigs_names):
 
     contig_len = len(contigs_seqs[i])
+    total_length += contig_len
 
     # SPAdes and A5 contigs should be processed in different way
     if not re.search(spades_patt, contig_name) is None:
@@ -315,9 +321,7 @@ for i, contig_name in enumerate(contigs_names):
 
         # Collecting coverage statistics
         flt_cov = float(cov)
-
-        total_length += contig_len
-        agv_coverage += flt_cov
+        avg_coverage += flt_cov
 
         min_coverage = min(min_coverage, flt_cov)
         max_coverage = max(max_coverage, flt_cov)
@@ -443,20 +447,17 @@ def find_overlap_e2e(seq1, seq2, mink, maxk):
     return 0 if overlap == 0 else (mink + overlap - 1)
 # end def find_overlap_e2e
 
-
-print('\n' + '=' * 45)
-
 # Find matching ends of contigs
-print("Searching for matching ends of contigs...\n")
-log = "\nMatching ends of contigs:\n"
+full_log = ""
+sys.stdout.write("0/{}".format(N))
+sys.stdout.flush()
 
 for i in range(len(contigs_names)):
 
-    print(contigs_names[i])
-
     # Omit contigs shorter that 'mink'
     if voc_ends[i][LEN] <= mink:
-        print("Contig '{}' is shorter than mink({}). Omitting it...".format(voc_ends[i][NAME], mink))
+        print("\nContig '{}' is shorter than mink({}). Omitting it...".format(voc_ends[i][NAME], mink))
+        full_log += "{}: contig is shorter than mink({}). Omitting it...\n".format(voc_ends[i][NAME], mink)
         continue
     # end if
 
@@ -468,10 +469,8 @@ for i in range(len(contigs_names)):
         voc_ends[i][START_MATCH].append("[Circle; ovl={}]".format(overlap))
         voc_ends[i][END_MATCH].append("[Circle; ovl={}]".format(overlap))
         exp_genome_len -= overlap
-        str_to_print = "{} is circular with overlap of {} b.p.".format(voc_ends[i][NAME],
+        full_log += "{}: contig is circular with overlap of {} b.p.\n".format(voc_ends[i][NAME],
             overlap)
-        print(str_to_print)
-        log += str_to_print + '\n'
     # end if
 
     # === Compare start to rc-end of current contig ===
@@ -479,10 +478,8 @@ for i in range(len(contigs_names)):
     overlap = find_overlap_s2s(voc_ends[i][START],
         voc_ends[i][RC_END], mink, maxk)
     if overlap != 0:
-        str_to_print = "Start of {} is identical to it's own rc-end with overlap of {} b.p.".format(voc_ends[i][NAME],
+        full_log += "{}: start is identical to it's own rc-end with overlap of {} b.p.\n".format(voc_ends[i][NAME],
             overlap)
-        print(str_to_print)
-        log += str_to_print + '\n'
     # end if
 
 
@@ -500,10 +497,10 @@ for i in range(len(contigs_names)):
             voc_ends[j][END_MATCH].append("[E=S({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
             exp_genome_len -= overlap
-            str_to_print = "End of {} matches start of {} with overlap of {} b.p.".format(voc_ends[j][NAME],
+            full_log += "{}: end matches start of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
                 voc_ends[i][NAME], overlap)
-            print(str_to_print)
-            log += str_to_print + '\n'
+            full_log += "{}: start matches end of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
+                voc_ends[j][NAME], overlap)
         # end if
 
         # === Conpare i-th end to j-th start ===
@@ -516,10 +513,10 @@ for i in range(len(contigs_names)):
             voc_ends[j][START_MATCH].append("[S=E({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
             exp_genome_len -= overlap
-            str_to_print = "End of {} matches start of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
+            full_log += "{}: end matches start of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
                 voc_ends[j][NAME], overlap)
-            print(str_to_print)
-            log += str_to_print + '\n'
+            full_log += "{}: start matches end of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
+                voc_ends[i][NAME], overlap)
         # end if
 
         # === Compare i-th start to reverse-complement j-th start ===
@@ -532,10 +529,10 @@ for i in range(len(contigs_names)):
             voc_ends[j][START_MATCH].append("[S=rc_S({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
             exp_genome_len -= overlap
-            str_to_print = "Start of {} matches rc-start of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
+            full_log += "{}: start matches rc-start of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
                 voc_ends[j][NAME], overlap)
-            print(str_to_print)
-            log += str_to_print + '\n'
+            full_log += "{}: start matches rc-start of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
+                voc_ends[i][NAME], overlap)
         # end if
 
         # === Conpare i-th end to reverse-complement j-th end ===
@@ -548,10 +545,10 @@ for i in range(len(contigs_names)):
             voc_ends[j][END_MATCH].append("[E=rc_E({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
             exp_genome_len -= overlap
-            str_to_print = "End of {} matches rc-end of {} with overlap of {} b.p.".format(voc_ends[j][NAME],
+            full_log += "{}: end matches rc-end of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
                 voc_ends[i][NAME], overlap)
-            print(str_to_print)
-            log += str_to_print + '\n'
+            full_log += "{}: end matches rc-end of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
+                voc_ends[j][NAME], overlap)
         # end if
 
         # === Compare i-th start to j-th start ===
@@ -559,10 +556,10 @@ for i in range(len(contigs_names)):
         overlap = find_overlap_s2s(voc_ends[i][START],
             voc_ends[j][START], mink, maxk)
         if overlap != 0:
-            str_to_print = "Start of {} matches start of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
+            full_log += "{}: start matches start of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
                 voc_ends[j][NAME], overlap)
-            print(str_to_print)
-            log += str_to_print + '\n'
+            full_log += "{}: start matches start of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
+                voc_ends[i][NAME], overlap)
         # end if
 
         # === Compare i-th end to j-th end ===
@@ -570,10 +567,10 @@ for i in range(len(contigs_names)):
         overlap = find_overlap_e2e(voc_ends[i][END],
             voc_ends[j][END], mink, maxk)
         if overlap != 0:
-            str_to_print = "End of {} matches end of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
+            full_log += "{}: end matches end of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
                 voc_ends[j][NAME], overlap)
-            print(str_to_print)
-            log += str_to_print + '\n'
+            full_log += "{}: end matches end of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
+                voc_ends[i][NAME], overlap)
         # end if
 
         # === Compare i-th start to reverse-complement j-th end ===
@@ -581,10 +578,10 @@ for i in range(len(contigs_names)):
         overlap = find_overlap_s2s(voc_ends[i][START],
             voc_ends[j][RC_END], mink, maxk)
         if overlap != 0:
-            str_to_print = "End of {} matches rc-start of {} with overlap of {} b.p.".format(voc_ends[j][NAME],
+            full_log += "{}: end matches rc-start of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
                 voc_ends[i][NAME], overlap)
-            print(str_to_print)
-            log += str_to_print + '\n'
+            full_log += "{}: start matches rc-end of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
+                voc_ends[j][NAME], overlap)
         # end if
 
         # === Compare i-th end to reverse-complement j-th start ===
@@ -592,19 +589,22 @@ for i in range(len(contigs_names)):
         overlap = find_overlap_e2e(voc_ends[i][END],
             voc_ends[j][RC_START], mink, maxk)
         if overlap != 0:
-            str_to_print = "End of {} matches rc-start of {} with overlap of {} b.p.".format(voc_ends[i][NAME],
+            full_log += "{}: end matches rc-start of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
                 voc_ends[j][NAME], overlap)
-            print(str_to_print)
-            log += str_to_print + '\n'
+            full_log += "{}: start matches rc-end of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
+                voc_ends[i][NAME], overlap)
         # end if
     # end for
+
+    sys.stdout.write("\r{}/{}".format(i+1, N))
+    sys.stdout.flush()
 # end for
 
 
 # === Form result table in file "combinator_output_FQ.tsv" ===
 
 # Open output file
-with open("{}{}combinator_output_FQ.tsv".format(prefix, '' if prefix == '' else '_'), 'w') as outfile:
+with open("{}{}combinator_adjacent_contigs.tsv".format(prefix, '' if prefix == '' else '_'), 'w') as outfile:
 
     # Write head of the table:
     outfile.write("#\tContig name\tLength\tCoverage\tGC(%)\tMultiplicity\tAnnotation\tStart\tEnd\n")
@@ -639,22 +639,42 @@ with open("{}{}combinator_output_FQ.tsv".format(prefix, '' if prefix == '' else 
         rev_LQ += int( len(voc_ends[i][START_MATCH]) == 0 )
         rev_LQ += int( len(voc_ends[i][END_MATCH]) == 0 )
     # end for
-
-    # Summary with some statistics:
-    outfile.write('\n' + '=' * 45 + '\n')
-    outfile.write("Summary:\n")
-    outfile.write("Sum of contig lengths: {} b.p.\n".format(total_length))
-    outfile.write("Expected length of the genome: {} b.p.\n".format(exp_genome_len))
-    outfile.write("Min coverage: {}.\n".format(min_coverage))
-    outfile.write("Max coverage: {}.\n".format(max_coverage))
-    outfile.write("Average coverage: {}.\n".format(round(agv_coverage / N, 3)))
-    outfile.write("{} contigs were processed.\n".format(N))
-    LQ = round(100 - (rev_LQ * 100) / (N * 2), 2)
-    outfile.write("LQ-coefficient: {}.\n".format((LQ)))
-    outfile.write('=' * 45)
-
-    outfile.write('\n' + log) # append log to end of the file
 # end with
 
-print("\nTask is completed!")
+# Sort log by name of contig
+full_log = '\n'.join(sorted(full_log.splitlines(), key = lambda x: int(x.partition(":")[0].partition('_')[2])))
+
+with open("{}{}combinator_full_matching_log.txt".format(prefix, '' if prefix == '' else '_'), 'w') as outfile:
+    outfile.write(full_log) # write full log separate file
+# end with
+
+LQ = round(100 - (rev_LQ * 100) / (N * 2), 2)
+
+print('\n')
+with open("{}{}combinator_summary_FQ.txt".format(prefix, '' if prefix == '' else '_'), 'w') as outfile:
+
+    outfile.write("File: '{}'\n\n".format(contigs_fpath))
+
+    # Summary with some statistics:
+    for print_func in (sys.stdout.write, outfile.write):
+        print_func("Summary:\n")
+        print_func("{} contigs were processed.\n".format(N))
+        print_func("Sum of contig lengths: {} b.p.\n".format(total_length))
+        print_func("Expected length of the genome: {} b.p.\n".format(exp_genome_len))
+        min_coverage = '-' if min_coverage == float("inf") else min_coverage
+        print_func("Min coverage: {}\n".format(min_coverage))
+        if max_coverage > 1e-6:
+            print_func("Max coverage: {}\n".format(max_coverage))
+        else:
+            print_func("Max coverage: -\n")
+        if avg_coverage > 1e-6:
+            print_func("Average coverage: {}\n".format(round(avg_coverage / N, 3)))
+        else:
+            print_func("Average coverage: -\n")
+        # end if
+        print_func("LQ-coefficient: {}\n".format((LQ)))
+    # end for
+# end with
+sys.stdout.flush()
+
 platf_depend_exit()
