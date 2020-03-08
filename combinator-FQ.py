@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.1.a"
+__version__ = "1.1.b"
 # Year, month, day
-__last_update_date__ = "2020-03-07"
+__last_update_date__ = "2020-03-09"
 
 # |===== Check python interpreter version =====|
 
@@ -468,7 +468,6 @@ for i in range(len(contigs_names)):
     if overlap != 0 and voc_ends[i][LEN] != overlap:
         voc_ends[i][START_MATCH].append("[Circle; ovl={}]".format(overlap))
         voc_ends[i][END_MATCH].append("[Circle; ovl={}]".format(overlap))
-        exp_genome_len -= overlap
         full_log += "{}: contig is circular with overlap of {} b.p.\n".format(voc_ends[i][NAME],
             overlap)
     # end if
@@ -496,7 +495,6 @@ for i in range(len(contigs_names)):
                 overlap))
             voc_ends[j][END_MATCH].append("[E=S({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
-            exp_genome_len -= overlap
             full_log += "{}: end matches start of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
                 voc_ends[i][NAME], overlap)
             full_log += "{}: start matches end of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
@@ -512,7 +510,6 @@ for i in range(len(contigs_names)):
                 overlap))
             voc_ends[j][START_MATCH].append("[S=E({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
-            exp_genome_len -= overlap
             full_log += "{}: end matches start of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
                 voc_ends[j][NAME], overlap)
             full_log += "{}: start matches end of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
@@ -528,7 +525,6 @@ for i in range(len(contigs_names)):
                 overlap))
             voc_ends[j][START_MATCH].append("[S=rc_S({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
-            exp_genome_len -= overlap
             full_log += "{}: start matches rc-start of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
                 voc_ends[j][NAME], overlap)
             full_log += "{}: start matches rc-start of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
@@ -544,7 +540,6 @@ for i in range(len(contigs_names)):
                 overlap))
             voc_ends[j][END_MATCH].append("[E=rc_E({}); ovl={}]".format(voc_ends[i][NAME],
                 overlap))
-            exp_genome_len -= overlap
             full_log += "{}: end matches rc-end of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
                 voc_ends[i][NAME], overlap)
             full_log += "{}: end matches rc-end of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
@@ -631,13 +626,19 @@ with open("{}{}combinator_adjacent_contigs.tsv".format(prefix, '' if prefix == '
         outfile.write(str(muliplty) + '\t\t') # leave empty field for annotation
 
         # Write information about discovered adjecency
-        outfile.write(' '.join(voc_ends[i][START_MATCH]) + '\t')
-        outfile.write(' '.join(voc_ends[i][END_MATCH]) + '\n')
-
-        # Calculate number to subtract from 100 to get LQ-coefficient
-        # 1 will be subtracted from 100 each time an end remains unpaired
-        rev_LQ += int( len(voc_ends[i][START_MATCH]) == 0 )
-        rev_LQ += int( len(voc_ends[i][END_MATCH]) == 0 )
+        for idx, eol in zip((START_MATCH, END_MATCH), ('\t', '\n')):
+            str_to_write = ' '.join(voc_ends[i][idx])
+            ovls = re.findall(r"; ovl=([0-9]+)", str_to_write)
+            if len(ovls) != 0:
+                # Subtract maximum overlap in order to find expected genome size
+                exp_genome_len -= max(map(lambda x: int(x), ovls))
+            else:
+                # Calculate number to subtract from 100 to get LQ-coefficient
+                # 1 will be subtracted from 100 each time an end remains unpaired
+                rev_LQ += 1
+            # end if
+            outfile.write(str_to_write + eol)
+        # end for
     # end for
 # end with
 

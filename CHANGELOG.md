@@ -1,8 +1,12 @@
 # cager-misc changelog
 
-## 2020-03-06 edition.
+## 2020-03-09 edition.
 
-- combinator-FQ version `1.0.a` added;
+- combinator-FQ: calculating expected genome length fixed;
+
+### Version changes:
+
+1. combinator-FQ: `1.1.a --> 1.1.b`
 
 ## 2020-03-07 edition.
 
@@ -12,3 +16,7 @@
 ### Version changes:
 
 1. combinator-FQ: `1.0.a --> 1.1.a`
+
+## 2020-03-06 edition.
+
+- combinator-FQ version `1.0.a` added;
