@@ -1,8 +1,16 @@
 # cager-misc changelog
 
+## 2020-03-18 edition.
+
+- combinator-FQ: calculating of expected genome length is disabled because it's impossible to handle high-copy replicons properly;
+
+### Version changes:
+
+1. combinator-FQ: `1.1.b --> 1.1.c`
+
 ## 2020-03-09 edition.
 
-- combinator-FQ: calculating expected genome length fixed;
+- combinator-FQ: calculation of expected genome length fixed;
 
 ### Version changes:
 
