@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-04-10 evening edition.
+
+- combinator-FQ: a5-aompatibility bug fixed;
+
+### Version changes:
+
+1. combinator-FQ: `1.2.a --> 1.2.b`
+
 ## 2020-04-10 edition.
 
 - combinator-FQ: calculating of expected genome length is embedded once again -- not considering contigs multiplicity;
