@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.1.c"
+__version__ = "1.2.a"
 # Year, month, day
-__last_update_date__ = "2020-03-18"
+__last_update_date__ = "2020-04-10"
 
 # Check python interpreter version
 
@@ -306,7 +306,7 @@ min_coverage = float("inf")
 max_coverage = 0
 
 # Readable indices
-FULL_NAME, NAME, LEN, COV, GC, START, RC_START, END, RC_END, START_MATCH, END_MATCH = range(11)
+FULL_NAME, NAME, LEN, COV, GC, START, RC_START, END, RC_END, START_MATCH, END_MATCH, MULT = range(12)
 
 # Iterate over contigs and form voc_ends dictionary
 for i, contig_name in enumerate(contigs_names):
@@ -318,13 +318,12 @@ for i, contig_name in enumerate(contigs_names):
     if not re.search(spades_patt, contig_name) is None:
 
         # Parse fasta header:
-        cov = str(contig_name.split('_')[5]) # get coverage
+        cov = float(contig_name.split('_')[5]) # get coverage
 
         # Collecting coverage statistics
-        flt_cov = float(cov)
-        avg_coverage += flt_cov
-        min_coverage = min(min_coverage, flt_cov)
-        max_coverage = max(max_coverage, flt_cov)
+        avg_coverage += cov
+        min_coverage = min(min_coverage, cov)
+        max_coverage = max(max_coverage, cov)
 
         name = 'NODE_' + contig_name.split('_')[1] # get name in 'NODE_<NUMBER>' format
 
@@ -360,6 +359,9 @@ for i, contig_name in enumerate(contigs_names):
     # Ends' matches
     voc_ends.setdefault(i, []).append(list())                       # START_MATCH
     voc_ends.setdefault(i, []).append(list())                       # END_MATCH
+
+    # Multiplicity
+    voc_ends.setdefault(i, []).append(None)                         # MULT
 # end for
 
 del contigs_seqs
@@ -443,6 +445,15 @@ def find_overlap_e2e(seq1, seq2, mink, maxk):
     return 0 if overlap == 0 else (mink + overlap - 1)
 # end def find_overlap_e2e
 
+
+# We will calculate expected length of genome,
+#   considering (deduplicating) overlaps and
+#   multiplicity of contigs
+exp_genome_len = 0
+
+s_omat = [[0 for i in range(N)] for j in range (N)]
+e_omat = [[0 for i in range(N)] for j in range (N)]
+
 # Find matching ends of contigs
 full_log = ""
 sys.stdout.write("0/{}".format(N))
@@ -452,8 +463,10 @@ for i in range(len(contigs_names)):
 
     # Omit contigs shorter that 'mink'
     if voc_ends[i][LEN] <= mink:
-        print("\nContig '{}' is shorter than mink({}). Omitting it...".format(voc_ends[i][NAME], mink))
-        full_log += "{}: contig is shorter than mink({}). Omitting it...\n".format(voc_ends[i][NAME], mink)
+        print("\nContig '{}' is shorter than mink ({} b.p.). Omitting it...".format(voc_ends[i][NAME], mink))
+        full_log += "{}: contig is shorter than mink ({} b.p.). Omitting it...\n".format(voc_ends[i][NAME], mink)
+        sys.stdout.write("\r{}/{}".format(i+1, N))
+        sys.stdout.flush()
         continue
     # end if
 
@@ -466,6 +479,12 @@ for i in range(len(contigs_names)):
         voc_ends[i][END_MATCH].append("[Circle; ovl={}]".format(overlap))
         full_log += "{}: contig is circular with overlap of {} b.p.\n".format(voc_ends[i][NAME],
             overlap)
+
+        # Amendment for calculating expected genome length.
+        # The longest overlap is the most significant one,
+        #   therefore we will save maximum overlap.
+        s_omat[i][i] = overlap
+        e_omat[i][i] = overlap
     # end if
 
     # === Compare start to rc-end of current contig ===
@@ -495,6 +514,12 @@ for i in range(len(contigs_names)):
                 voc_ends[i][NAME], overlap)
             full_log += "{}: start matches end of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
                 voc_ends[j][NAME], overlap)
+
+            # Amendment for calculating expected genome length.
+            # The longest overlap is the most significant one,
+            #   therefore we will save maximum overlap.
+            s_omat[i][j] = overlap
+            e_omat[j][i] = overlap
         # end if
 
         # === Compare i-th end to j-th start ===
@@ -510,6 +535,12 @@ for i in range(len(contigs_names)):
                 voc_ends[j][NAME], overlap)
             full_log += "{}: start matches end of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
                 voc_ends[i][NAME], overlap)
+
+            # Amendment for calculating expected genome length.
+            # The longest overlap is the most significant one,
+            #   therefore we will save maximum overlap.
+            e_omat[i][j] = overlap
+            s_omat[j][i] = overlap
         # end if
 
         # === Compare i-th start to reverse-complement j-th start ===
@@ -525,6 +556,12 @@ for i in range(len(contigs_names)):
                 voc_ends[j][NAME], overlap)
             full_log += "{}: start matches rc-start of {} with overlap of {} b.p.\n".format(voc_ends[j][NAME],
                 voc_ends[i][NAME], overlap)
+
+            # Amendment for calculating expected genome length.
+            # The longest overlap is the most significant one,
+            #   therefore we will save maximum overlap.
+            s_omat[i][j] = overlap
+            s_omat[j][i] = overlap
         # end if
 
         # === Compare i-th end to reverse-complement j-th end ===
@@ -540,6 +577,12 @@ for i in range(len(contigs_names)):
                 voc_ends[i][NAME], overlap)
             full_log += "{}: end matches rc-end of {} with overlap of {} b.p.\n".format(voc_ends[i][NAME],
                 voc_ends[j][NAME], overlap)
+
+            # Amendment for calculating expected genome length.
+            # The longest overlap is the most significant one,
+            #   therefore we will save maximum overlap.
+            e_omat[i][j] = overlap
+            e_omat[j][i] = overlap
         # end if
 
         # === Compare i-th start to j-th start ===
@@ -594,8 +637,12 @@ for i in range(len(contigs_names)):
 
 # === Form result table in file "combinator_output_FQ.tsv" ===
 
+adj_cont_fpath = "{}{}combinator_adjacent_contigs.tsv".format(prefix, '' if prefix == '' else '_')
+
+print("\n\nWriting adjacency table to '{}'".format(adj_cont_fpath))
+
 # Open output file
-with open("{}{}combinator_adjacent_contigs.tsv".format(prefix, '' if prefix == '' else '_'), 'w') as outfile:
+with open(adj_cont_fpath, 'w') as outfile:
 
     # Write head of the table:
     outfile.write("#\tContig name\tLength\tCoverage\tGC(%)\tMultiplicity\tAnnotation\tStart\tEnd\n")
@@ -614,12 +661,17 @@ with open("{}{}combinator_adjacent_contigs.tsv".format(prefix, '' if prefix == '
 
         # Calculate multiplicity of contig:
         if voc_ends[i][COV] != '-':
-            muliplty = round(float(voc_ends[i][COV])/float(voc_ends[0][COV]), 1)
+            muliplty = voc_ends[i][COV] / voc_ends[0][COV]
+
+            # Consider multiplicity of contigs in calculating of expected genome length
+            exp_genome_len += max(round(muliplty), 1) * voc_ends[i][LEN]
         else:
             muliplty = '-'
         # end if
 
-        outfile.write(str(muliplty) + '\t\t') # leave empty field for annotation
+        outfile.write(str(round(muliplty, 1)) + '\t\t') # leave empty field for annotation
+
+        voc_ends[i][MULT] = max(round(muliplty), 1)
 
         # Write information about discovered adjecency
         for idx, eol in zip((START_MATCH, END_MATCH), ('\t', '\n')):
@@ -635,26 +687,71 @@ with open("{}{}combinator_adjacent_contigs.tsv".format(prefix, '' if prefix == '
         # end for
     # end for
 # end with
+print("Done\n")
+
+full_log_fpath = "{}{}combinator_full_matching_log.txt".format(prefix, '' if prefix == '' else '_')
+
+print("Writing full matching log to '{}'".format(full_log_fpath))
 
 # Sort log by name of contig
 full_log = '\n'.join(sorted(full_log.splitlines(), key = lambda x: int(x.partition(":")[0].partition('_')[2])))
 
-with open("{}{}combinator_full_matching_log.txt".format(prefix, '' if prefix == '' else '_'), 'w') as outfile:
+
+with open(full_log_fpath, 'w') as outfile:
     outfile.write(full_log) # write full log separate file
 # end with
+print("Done\n")
+
+print("Amending expected genome length...")
+
+print_counter = 0
+print_end = 2 * N / 100
+sys.stdout.write("0% completed")
+
+for prim_matr, sec_matr in zip((s_omat, e_omat), (e_omat, s_omat)):
+
+    for i in range(N):
+
+        overlap = max(prim_matr[i])
+
+        if overlap != 0:
+
+            mate_idx = prim_matr[i].index(overlap)
+            exp_genome_len -= overlap * min(voc_ends[i][MULT], voc_ends[mate_idx][MULT])
+
+            for j in range(N):
+
+                if prim_matr[i][j] != 0:
+
+                    prim_matr[i][j] = 0
+                    sec_matr[i][j] = 0
+                    prim_matr[j][i] = 0
+                    sec_matr[j][i] = 0
+                # end if
+            # end for
+        # end if
+
+        print_counter += 1
+        sys.stdout.write("\r{}% completed".format(round(print_counter / print_end, 2)))
+    # end for
+# end for
+
+summary_fpath = "{}{}combinator_summary_FQ.txt".format(prefix, '' if prefix == '' else '_')
+
+print("\n\nWriting summary to '{}'\n".format(summary_fpath))
 
 LQ = round(100 - (rev_LQ * 100) / (N * 2), 2)
 
-print('\n')
-with open("{}{}combinator_summary_FQ.txt".format(prefix, '' if prefix == '' else '_'), 'w') as outfile:
+with open(summary_fpath, 'w') as outfile:
 
     outfile.write("File: '{}'\n\n".format(contigs_fpath))
 
     # Summary with some statistics:
     for print_func in (sys.stdout.write, outfile.write):
-        print_func("Summary:\n")
+        print_func(" === Summary ===\n")
         print_func("{} contigs were processed.\n".format(N))
         print_func("Sum of contig lengths: {} b.p.\n".format(total_length))
+        print_func("Expected length of the genome: {} b.p.\n".format(exp_genome_len))
         min_coverage = '-' if min_coverage == float("inf") else min_coverage
         print_func("Min coverage: {}\n".format(min_coverage))
         if max_coverage > 1e-6:
