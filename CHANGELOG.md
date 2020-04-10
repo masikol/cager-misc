@@ -3,6 +3,7 @@
 ## 2020-04-10 edition.
 
 - combinator-FQ: calculating of expected genome length is embedded once again -- not considering contigs multiplicity;
+- fasta_GC-content is added;
 
 ### Version changes:
 
