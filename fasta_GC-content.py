@@ -42,7 +42,6 @@ def platf_depend_exit(exit_code=0):
     sys.exit(exit_code)
 # end def platf_depend_exit
 
-import os
 
 def print_help():
     print("\n    |=== fasta_GC-content ===|")
@@ -69,8 +68,10 @@ if "-v" in sys.argv[1:] or "--version" in sys.argv[1:]:
     platf_depend_exit()
 # end if
 
-fa_fpaths = list()
 import re
+import os
+
+fa_fpaths = list()
 
 is_fasta = lambda f: not re.search(r"f(ast)?a(\.gz)?$", f) is None
 valid_options = ("-h", "--help", "-v", "--version")

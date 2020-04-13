@@ -6,6 +6,7 @@
 - mean_qual script added;
 - fastq2fasta script added;
 - fastq_read_count script added;
+- dna_summary script added;
 
 ## 2020-04-10 evening edition.
 
