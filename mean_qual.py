@@ -55,7 +55,6 @@ def print_help():
     print("  -v (--version): print version.")
     print("  -o (--outfile): output file. Default: './mean_qual_result.tsv'.")
     print("  -p (--phred-offset): Phred offset (33 of 64). Default: 33.")
-    platf_depend_exit()
 # end if
 
 # Firstly check for information-providing flags
@@ -118,7 +117,7 @@ if len(fpaths) == 0:
     fpaths = tuple( filter(is_fastq, os.listdir('.')) )
 
     if len(fpaths) == 0:
-        print("There are no *.fastq(.gz) or *.fq(.gz) files in the working directory.")
+        print_help()
         platf_depend_exit(1)
     # end if
 

@@ -148,7 +148,7 @@ if len(args) == 0:
     else:
         # If there are no fasta files in working directory, just print help
         print_help()
-        platf_depend_exit()
+        platf_depend_exit(1)
     # end if
 
 else:

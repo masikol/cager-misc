@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
-
 #---------------------------------------------------------------------------
 # Script calculates GC-content of each sequence in *.fasta(.gz) or *.fa(.gz) file(s).
 # Script writes it's output to tab-separated file.
@@ -86,8 +85,8 @@ for arg in sys.argv[1:]:
         # end if
 
         if not is_fasta(arg):
-            print("File '{}' does not like an fasta file".format(arg))
-            print("Scrtip understands only '*.fasta(.gz)'' and '*.fa(.gz)' extentions")
+            print("File '{}' does not look like a fasta file".format(arg))
+            print("Script understands only '*.fasta(.gz)'' and '*.fa(.gz)' extentions")
             platf_depend_exit(1)
         # end if
 
@@ -105,7 +104,6 @@ if len(fa_fpaths) == 0:
 
     # Check if there are any appropriate files:
     if len(fa_fpaths) == 0:
-        print("\nThere are no '*.fasta(.gz)' or '*.fa(.gz)' files in the working directory!")
         print_help()
         platf_depend_exit(1)
     # end if

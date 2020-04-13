@@ -48,7 +48,6 @@ def print_help():
     print("\nOptions:")
     print("  -h (--help): print help message.")
     print("  -v (--version): print version.")
-    platf_depend_exit()
 # end if
 
 
@@ -83,8 +82,8 @@ for arg in sys.argv[1:]:
         # end if
 
         if not is_fastq(arg):
-            print("File '{}' does not like an fasta file".format(arg))
-            print("Scrtip understands only '*.fasta(.gz)'' and '*.fa(.gz)' extentions")
+            print("File '{}' does not look like a fastq file".format(arg))
+            print("Script understands only '*.fastq(.gz)'' and '*.fq(.gz)' extentions")
             platf_depend_exit(1)
         # end if
 
@@ -95,17 +94,12 @@ del valid_options
 
 # If no input files are specified -- process all fastq files in the working directory
 if len(fpaths) == 0:
-
     fpaths = tuple( filter(is_fastq, os.listdir('.')) )
-
-    if len(fpaths) == 0:
-        print("There are no *.fastq(.gz) or *.fq(.gz) files in the working directory.")
-        platf_depend_exit(1)
-    # end if
 # end if
 
 if len(fpaths) == 0:
     print_help()
+    platf_depend_exit(1)
 # end if
 
 print("fastq2fasta. Version {}; {} edition\n".format(__version__, __last_update_date__))

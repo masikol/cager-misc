@@ -4,6 +4,8 @@
 
 - fasta_GC-content: format of output file changed to tab-separated table with summary in the end;
 - mean_qual script added;
+- fastq2fasta script added;
+- fastq_read_count script added;
 
 ## 2020-04-10 evening edition.
 
