@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.2.a"
+__version__ = "1.2.b"
 # Year, month, day
 __last_update_date__ = "2020-04-10"
 
@@ -661,17 +661,21 @@ with open(adj_cont_fpath, 'w') as outfile:
 
         # Calculate multiplicity of contig:
         if voc_ends[i][COV] != '-':
-            muliplty = voc_ends[i][COV] / voc_ends[0][COV]
+            muliplty = round(voc_ends[i][COV] / voc_ends[0][COV], 1)
 
             # Consider multiplicity of contigs in calculating of expected genome length
             exp_genome_len += max(round(muliplty), 1) * voc_ends[i][LEN]
+            voc_ends[i][MULT] = max(round(muliplty), 1)
+
+            muliplty = str(muliplty)
         else:
             muliplty = '-'
+            exp_genome_len += voc_ends[i][LEN]
+            voc_ends[i][MULT] = 1
         # end if
 
-        outfile.write(str(round(muliplty, 1)) + '\t\t') # leave empty field for annotation
+        outfile.write(muliplty + '\t\t') # leave empty field for annotation
 
-        voc_ends[i][MULT] = max(round(muliplty), 1)
 
         # Write information about discovered adjecency
         for idx, eol in zip((START_MATCH, END_MATCH), ('\t', '\n')):
