@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-04-13 edition.
+
+- fasta_GC-content: format of output file changed to tab-separated table with summary in the end;
+
+### Version changes:
+
+1. fasta_GC-content: `1.0.a --> 1.1.a`
+
 ## 2020-04-10 edition.
 
 - combinator-FQ: calculating of expected genome length is embedded once again -- not considering contigs multiplicity;

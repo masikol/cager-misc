@@ -9,9 +9,9 @@
 # 2. Min, max and mean coverage (if SPAdes assembly file is processed).
 #---------------------------------------------------------------------------
 
-__version__ = "1.0.a"
+__version__ = "1.1.a"
 # Year, month, day
-__last_update_date__ = "2020-04-10"
+__last_update_date__ = "2020-04-13"
 
 # Check python interpreter version
 
@@ -73,7 +73,7 @@ fa_fpaths = list()
 import re
 
 is_fasta = lambda f: not re.search(r"f(ast)?a(\.gz)?$", f) is None
-valid_options = ("-h", "--help", "-v", "--version", "-q", "--quiet")
+valid_options = ("-h", "--help", "-v", "--version")
 
 for arg in sys.argv[1:]:
 
@@ -110,27 +110,12 @@ if len(fa_fpaths) == 0:
     # end if
 # end if
 
-if "-q" in sys.argv[1:] or "--quiet" in sys.argv[1:]:
 
-    def printq(text=""):
-        """Quiet printing"""
-        pass
-    # end def printq
-
-else:
-
-    def printq(text=""):
-        """Normal printing"""
-        sys.stdout.write(text + '\n')
-    # end def printq
-
-# end if
-
-printq("\nfasta_GC-content.py; Version {}; {} edition;\n".format(__version__, __last_update_date__))
-printq('Following files will be processed:')
+print("\nfasta_GC-content.py; Version {}; {} edition;\n".format(__version__, __last_update_date__))
+print('Following files will be processed:')
 for i, fpath in enumerate(fa_fpaths):
-    printq("{}. '{}'".format(str(i+1), fpath))
-printq('-' * 58 + '\n')
+    print("{}. '{}'".format(str(i+1), fpath))
+print('-' * 25 + '\n')
 
 
 # Stuff for processing gzipped files
@@ -157,7 +142,7 @@ for fpath in fa_fpaths:
     how_to_open = OPEN_FUNCS[ is_gzipped(fpath) ]
     fmt_func = FORMATTING_FUNCS[ is_gzipped(fpath) ]
 
-    printq("========== File: '{}' ===========".format(fpath))
+    print("=== File: '{}' ===".format(fpath))
     seq = ''            # empty string
     heads = []          # list for headings
     seqs = []           # list of sequences
@@ -189,8 +174,6 @@ for fpath in fa_fpaths:
     # Remove odd empty string (it is the first one)
     seqs.remove('')
 
-    printq("\n{} sequences in file '{}'\n".format(len(heads), fpath))
-
     # Configure name of outfile with appropriate prefix
     prefix = re.search(r"(.+)\.fa(sta)?(\.gz)?", fpath).group(1)
     outfpath = prefix + ".GC_result.txt"
@@ -198,35 +181,32 @@ for fpath in fa_fpaths:
 
     with open(outfpath, 'w') as outfile:
 
+        outfile.write('\t'.join( ("Sequence name",
+            "G",
+            "C",
+            "S (G or C)",
+            "GC (%)",
+            "Length (b.p.)") ) +
+        '\n')
+
         # Calculate GC-content
         for (i, seq), head in zip(enumerate(seqs), heads):
 
-            # Write heads to outfile and console
-            outfile.write(head.replace('>', '') + '\t' + '\n')
-            printq(head.replace('>', ''))
 
             g_count = seq.upper().count('G')
-            outfile.write("G count:  \t{}\n".format(g_count))
-            printq("G count:  \t{}".format(g_count))
-
             c_count = seq.upper().count('C')
-            outfile.write("C count:  \t{}\n".format(c_count))
-            printq("C count:  \t{}".format(c_count))
-
             # According to IUPAC, S is G or C
             s_count = seq.upper().count("S")
-            # We wont's disturb a user with this 'S' if s_count == 0
-            if s_count != 0:
-                outfile.write("S count:  \t{}\n".format(s_count))
-                printq("S count:  \t{}".format(s_count))
-            # end if
 
             gc_content = round( (g_count + c_count + s_count) / len(seq) * 100, 2 )
-            outfile.write("Length:  \t{} b.p.\n".format(len(seq)))
-            printq("Length:  \t{} b.p.".format(len(seq)))
-            outfile.write("GC-content:  \t{}%\n".format(gc_content))
-            printq("GC-content:  \t{}%".format(gc_content))
-            # End of GC-content calculating
+
+            outfile.write('\t'.join( (head[1:],
+                str(g_count),
+                str(c_count),
+                str(s_count),
+                str(gc_content),
+                str(len(seq))) ) +
+            '\n')
 
             # Calculations for summary
             totalLength += len(seq)
@@ -248,11 +228,13 @@ for fpath in fa_fpaths:
             # end if
         # end for
 
-        # Duplicate printing to console and writing to file
-        for print_func in (printq, outfile.write):
+        # Separate summary from table body
+        outfile.write('\n')
 
-            print_func("\n================= Summary ==================\n")
-            print_func("Total Length:    \t{:,}\n".format(totalLength).replace(',', ' '))
+        # Duplicate printing to console and writing to file
+        for print_func in (sys.stdout.write, outfile.write):
+
+            print_func("Total length:    \t{:,}\n".format(totalLength).replace(',', ' '))
 
             if spades:
                 print_func("Min coverage:   \t{}\n".format(min_cov))
@@ -262,10 +244,10 @@ for fpath in fa_fpaths:
 
             print_func('Sequences processed: \t{}\n'.format('{:,}'.format(len(seqs)).replace(',', ' ')))
             print_func('Lines processed: \t{}\n'.format('{:,}'.format(line_counter).replace(',', ' ')))
-            print_func('============================================\n\n')
         # end for
+        print('=' * 30 + '\n')
     # end with
 # end for
 
-printq("Completed!")
+print("Completed!")
 platf_depend_exit()
