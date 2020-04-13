@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # ----------------------------------------------------------------------
-# This script calculates total mean quality of reads in FASTQ file(s).
+# This script calculates total mean quality of reads in fasrq file(s).
 # Script writes it's output to tab-separated file.
 # ----------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ def print_help():
     print("Version {}; {} edition.".format(__version__, __last_update_date__))
     print("\nUsage:")
     print("  python3 mean_qual.py first.fastq second.fastq.gz third.fq.gz")
-    print("Following command will process all *.fasta(.gz) and *.fa(.gz) files in the working directory:")
+    print("Following command will process all *.fastq(.gz) and *.fq(.gz) files in the working directory:")
     print("  python3 mean_qual.py")
     print("\nOptions:")
     print("  -h (--help): print help message.")
