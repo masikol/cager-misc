@@ -1,5 +1,10 @@
 # cager-misc changelog
 
+## 2020-04-13 edition.
+
+- fasta_GC-content: format of output file changed to tab-separated table with summary in the end;
+- mean_qual script added;
+
 ## 2020-04-10 evening edition.
 
 - combinator-FQ: a5-compatibility bug fixed;

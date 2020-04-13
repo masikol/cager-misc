@@ -3,8 +3,9 @@
 
 #---------------------------------------------------------------------------
 # Script calculates GC-content of each sequence in *.fasta(.gz) or *.fa(.gz) file(s).
+# Script writes it's output to tab-separated file.
 #
-# In the end, script prints summary:
+# For each file, script additionaly prints summary:
 # 1. Total length of sequences processed.
 # 2. Min, max and mean coverage (if SPAdes assembly file is processed).
 #---------------------------------------------------------------------------
