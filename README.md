@@ -9,3 +9,4 @@ List of tools:
 - [fastq2fasta](https://www.github.com/masikol/cager-misc/wiki/fastq2fasta): script converts `fastq` files to `fasta` format;
 - [fastq_read_count](https://www.github.com/masikol/cager-misc/wiki/fastq-read-count): script counts amount of reads in `fastq` file(s);
 - [dna-summary](https://www.github.com/masikol/cager-misc/wiki/dna-summary): script collects basic information from `.dna` SPAdes contigs in `contigs/` directory;
+- [most-freq-subseq](https://www.github.com/masikol/cager-misc/wiki/most-freq-subseq): script finds N most frequently occuring subsequenсes of given length for each sequence in FASTA file;

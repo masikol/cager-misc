@@ -7,6 +7,7 @@
 - fastq2fasta script added;
 - fastq_read_count script added;
 - dna_summary script added;
+- most-freq-subseq script added;
 
 ## 2020-04-10 evening edition.
 
