@@ -3,6 +3,7 @@
 ## 2020-04-14 edition.
 
 - find-seq script added;
+- NOS added;
 
 ## 2020-04-13 edition.
 

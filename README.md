@@ -1,4 +1,4 @@
-# cager-misc
+# CAGER-misc
 
 Miscellaneous computational tools from [Laboratory](http://mbio.bas-net.by/en/ob-institute/struktura-instituta/cagii/) "Center of Analytical and Genetic Engineering Research".
 
@@ -11,3 +11,4 @@ List of tools:
 - [dna-summary](https://www.github.com/masikol/cager-misc/wiki/dna-summary): script collects basic information from `.dna` SPAdes contigs in `contigs/` directory;
 - [most-freq-subseq](https://www.github.com/masikol/cager-misc/wiki/most-freq-subseq): script finds N most frequently occuring subsequenсes of given length for each sequence in fasta file;
 - [find-seq](https://www.github.com/masikol/cager-misc/wiki/most-freq-subseq): script finds fasta record(s) in `fasta` file by given sequence header;
+- [NOS](https://www.github.com/masikol/cager-misc/wiki/most-freq-subseq): sript counts non-overalapping occurences of query sequence (and it's reverse complement "comrade") in `fasta` file(s);
