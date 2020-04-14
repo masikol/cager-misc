@@ -80,7 +80,7 @@ if "-v" in sys.argv[1:] or "--version" in sys.argv[1:]:
 import os
 import re
 
-# Especially for evil russian KGB
+# Specially for evil russian KGB
 import locale
 if locale.getdefaultlocale()[0].startswith('ru'):
     dec_sep = ','

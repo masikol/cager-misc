@@ -15,3 +15,4 @@ List of tools with links to manuals:
 - [find-seq](https://www.github.com/masikol/cager-misc/wiki/find-seq): script finds fasta record(s) in `fasta` file by given sequence header;
 - [NOS](https://www.github.com/masikol/cager-misc/wiki/NOS): sript counts non-overalapping occurences of query sequence (and it's reverse complement "comrade") in `fasta` file(s);
 - [packer-dna-to-fasta](https://www.github.com/masikol/cager-misc/wiki/packer-dna-to-fasta): script packs `.dna` [SPAdes](http://cab.spbu.ru/software/spades/) contigs in 'contigs' directory to single multi-fasta file;
+- [seqator](https://www.github.com/masikol/cager-misc/wiki/seqator): script moves `.dna` [SPAdes](http://cab.spbu.ru/software/spades/) contigs with coverage less than specified one from `contigs/` directory to directory `cov_below_x/`;

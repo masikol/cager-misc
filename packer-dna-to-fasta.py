@@ -4,7 +4,7 @@
 # ---------------------------------
 # Script packs all "SPAdes-like" .dna files in 'contigs' directory
 #   to single multi-fasta file 'packed_dna.fasta'.
-# "SPAdes-like" means that name of file if of following format:
+# "SPAdes-like" means that name of file is of following format:
 #   NODE_1_length_61704_cov_114.517.dna
 # ---------------------------------
 
@@ -45,7 +45,7 @@ def print_help():
 
     print('Script packs all "SPAdes-like" .dna files in \'contigs\' directory')
     print("  to single multi-fasta file 'packed_dna.fasta'.")
-    print('SPAdes-like" means that name of file if of following format:')
+    print('SPAdes-like" means that name of file is of following format:')
     print("  NODE_1_length_61704_cov_114.517.dna")
 
     print("\nUsage: just run it in directory, where folder 'contigs' is located")

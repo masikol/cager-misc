@@ -5,6 +5,7 @@
 - find-seq script added;
 - NOS added;
 - packer-dna-to-fasta added;
+- seqator added;
 
 ## 2020-04-13 edition.
 
