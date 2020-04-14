@@ -1,12 +1,16 @@
 # cager-misc changelog
 
+## 2020-04-14 edition.
+
+- find-seq script added;
+
 ## 2020-04-13 edition.
 
-- fasta_GC-content: format of output file changed to tab-separated table with summary in the end;
-- mean_qual script added;
+- fasta-GC-content: format of output file changed to tab-separated table with summary in the end;
+- mean-qual script added;
 - fastq2fasta script added;
-- fastq_read_count script added;
-- dna_summary script added;
+- fastq-read-count script added;
+- dna-summary script added;
 - most-freq-subseq script added;
 
 ## 2020-04-10 evening edition.
@@ -20,7 +24,7 @@
 ## 2020-04-10 edition.
 
 - combinator-FQ: calculating of expected genome length is embedded once again -- not considering contigs multiplicity;
-- fasta_GC-content is added;
+- fasta-GC-content is added;
 
 ### Version changes:
 

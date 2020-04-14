@@ -4,9 +4,10 @@ Miscellaneous computational tools from [Laboratory](http://mbio.bas-net.by/en/ob
 
 List of tools:
 - [combinator-FQ](https://www.github.com/masikol/cager-misc/wiki/combinator-FQ): script identifies adjecent contigs and calculates summary including **LQ**-coefficient;
-- [fasta_GC-content](https://www.github.com/masikol/cager-misc/wiki/fasta-GC-content): script calculates GC-content of each sequence in `fasta` file(s);
-- [mean_qual](https://www.github.com/masikol/cager-misc/wiki/mean-qual): script calculates mean quality of reads in `fastq` file(s);
+- [fasta-GC-content](https://www.github.com/masikol/cager-misc/wiki/fasta-GC-content): script calculates GC-content of each sequence in `fasta` file(s);
+- [mean-qual](https://www.github.com/masikol/cager-misc/wiki/mean-qual): script calculates mean quality of reads in `fastq` file(s);
 - [fastq2fasta](https://www.github.com/masikol/cager-misc/wiki/fastq2fasta): script converts `fastq` files to `fasta` format;
-- [fastq_read_count](https://www.github.com/masikol/cager-misc/wiki/fastq-read-count): script counts amount of reads in `fastq` file(s);
+- [fastq-read-count](https://www.github.com/masikol/cager-misc/wiki/fastq-read-count): script counts amount of reads in `fastq` file(s);
 - [dna-summary](https://www.github.com/masikol/cager-misc/wiki/dna-summary): script collects basic information from `.dna` SPAdes contigs in `contigs/` directory;
-- [most-freq-subseq](https://www.github.com/masikol/cager-misc/wiki/most-freq-subseq): script finds N most frequently occuring subsequenсes of given length for each sequence in FASTA file;
+- [most-freq-subseq](https://www.github.com/masikol/cager-misc/wiki/most-freq-subseq): script finds N most frequently occuring subsequenсes of given length for each sequence in fasta file;
+- [find-seq](https://www.github.com/masikol/cager-misc/wiki/most-freq-subseq): script finds fasta record(s) in `fasta` file by given sequence header;

@@ -7,7 +7,7 @@ __last_update_date__ = "2020-04-13"
 # ---------------------------------------------------------------------------
 # Script makes brief summary (length, coverage, GC-content)
 #   of .dna files located in directory './contigs'
-#   and saves it in file 'dna_summary.txt' in tab-separated format.
+#   and saves it in file 'dna-summary.txt' in tab-separated format.
 #
 # Coverage can be extracted if file is named as SPAdes contig:
 #   NODE_1_length_61704_cov_114.517.dna
@@ -48,12 +48,12 @@ def platf_depend_exit(exit_code=0):
 
 
 def print_help():
-    print("\n    |=== dna_summary ===|")
+    print("\n    |=== dna-summary ===|")
     print("Version {}. {} edition.\n".format(__version__, __last_update_date__))
 
     print("""Script makes brief summary (length, coverage, GC-content)
   of .dna files located in directory './contigs'
-  and saves it in file 'dna_summary.txt' in tab-separated format.""")
+  and saves it in file 'dna-summary.txt' in tab-separated format.""")
 
     print("""Coverage can be extracted if file is named as SPAdes contig:
   NODE_1_length_61704_cov_114.517.dna""")
@@ -62,7 +62,7 @@ def print_help():
   1   NODE_1_length_61704_cov_114.517.dna 61704   114,517     44,54""")
 
     print("\nUsage: just run it in directory, where folder 'contigs' is located")
-    print("  python3 dna_summary.py")
+    print("  python3 dna-summary.py")
 # end def print_help
 
 # Firstly check for information-providing flags
@@ -97,7 +97,7 @@ if not os.path.exists(target_dir):
     platf_depend_exit(1)
 # end if
 
-print("dna_summary; Version {}; {} edition;".format(__version__, __last_update_date__))
+print("dna-summary; Version {}; {} edition;".format(__version__, __last_update_date__))
 print('"contigs/" directory is found and will be processed.\n')
 
 # We will process only those .dna files, which are SPAdes contigs
@@ -123,7 +123,7 @@ min_coverage = float('inf')
 max_coverage = 0
 
 # Start processing .dna files
-with open('dna_summary.txt', 'w') as outfile:
+with open('dna-summary.txt', 'w') as outfile:
 
     outfile.write('\t'.join( ("#",
         "Sequence name",

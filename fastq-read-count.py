@@ -36,12 +36,12 @@ def platf_depend_exit(exit_code=0):
 
 
 def print_help():
-    print("\nScript 'fastq_read_count.py' counts amount of reads in fastq file(s).\n")
+    print("\nScript 'fastq-read-count.py' counts amount of reads in fastq file(s).\n")
     print("Version {}; {} edition.".format(__version__, __last_update_date__))
     print("\nUsage:")
-    print("  python3 fastq_read_count.py first.fastq second.fastq.gz third.fq.gz")
+    print("  python3 fastq-read-count.py first.fastq second.fastq.gz third.fq.gz")
     print("Following command will process all *.fastq(.gz) and *.fq(.gz) files in the working directory:")
-    print("  python3 fastq_read_count.py")
+    print("  python3 fastq-read-count.py")
     print("\nOptions:")
     print("  -h (--help): print help message.")
     print("  -v (--version): print version.")
@@ -100,7 +100,7 @@ if len(fpaths) == 0:
     platf_depend_exit(1)
 # end if
 
-print("fastq_read_count. Version {}; {} edition.\n".format(__version__, __last_update_date__))
+print("fastq-read-count. Version {}; {} edition.\n".format(__version__, __last_update_date__))
 print("Following files are found and will be processed:")
 for i, f in enumerate(fpaths):
     print("{}. '{}'".format(i+1, os.path.abspath(f)))
@@ -115,7 +115,7 @@ LINES_IN_READ = 4 # 4 lines per fastq record
 total_read_num = 0
 
 
-with open("fastq_read_count_result.tsv", 'w') as outfile:
+with open("fastq-read-count_result.tsv", 'w') as outfile:
 
     outfile.write('\t'.join(("File", "Number of reads")) + '\n')
 

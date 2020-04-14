@@ -44,16 +44,16 @@ def platf_depend_exit(exit_code=0):
 # end def platf_depend_exit
 
 def print_help():
-    print("\nScript 'mean_qual.py' calculates mean quality of reads in fastq file(s).\n")
+    print("\nScript 'mean-qual.py' calculates mean quality of reads in fastq file(s).\n")
     print("Version {}; {} edition.".format(__version__, __last_update_date__))
     print("\nUsage:")
-    print("  python3 mean_qual.py first.fastq second.fastq.gz third.fq.gz")
+    print("  python3 mean-qual.py first.fastq second.fastq.gz third.fq.gz")
     print("Following command will process all *.fastq(.gz) and *.fq(.gz) files in the working directory:")
-    print("  python3 mean_qual.py")
+    print("  python3 mean-qual.py")
     print("\nOptions:")
     print("  -h (--help): print help message.")
     print("  -v (--version): print version.")
-    print("  -o (--outfile): output file. Default: './mean_qual_result.tsv'.")
+    print("  -o (--outfile): output file. Default: './mean-qual_result.tsv'.")
     print("  -p (--phred-offset): Phred offset (33 of 64). Default: 33.")
 # end if
 
@@ -87,7 +87,7 @@ except getopt.GetoptError as gerr:
 fpaths = args
 
 phred_offset = 33
-outfpath = "mean_qual_result.tsv"
+outfpath = "mean-qual_result.tsv"
 write_head = True
 
 for opt, arg in opts:

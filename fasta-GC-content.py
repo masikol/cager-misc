@@ -44,16 +44,16 @@ def platf_depend_exit(exit_code=0):
 
 
 def print_help():
-    print("\n    |=== fasta_GC-content ===|")
+    print("\n    |=== fasta-GC-content ===|")
     print("Version {}. {} edition.\n".format(__version__, __last_update_date__))
     print("""Script calculates GC-content of each sequence in
   *.fasta or *.fa file(s) and saves this data in file(s) '<NAME>_GC_result.txt'.""")
     print("Also, script can calculate max, min and mean coverage when processing SPAdes's assembly.")
 
     print("\nUsage:")
-    print("  python3 fasta_GC-content.py some_file.fasta another_file.fa")
+    print("  python3 fasta-GC-content.py some_file.fasta another_file.fa")
     print("Following command will process all *.fasta(.gz) and *.fa(.gz) files in the working directory:")
-    print("  python3 fasta_GC-content.py")
+    print("  python3 fasta-GC-content.py")
 # end def print_help
 
 # Firstly check for information-providing flags
@@ -111,7 +111,7 @@ if len(fa_fpaths) == 0:
 # end if
 
 
-print("\nfasta_GC-content.py; Version {}; {} edition;\n".format(__version__, __last_update_date__))
+print("\nfasta-GC-content.py; Version {}; {} edition;\n".format(__version__, __last_update_date__))
 print('Following files will be processed:')
 for i, fpath in enumerate(fa_fpaths):
     print("{}. '{}'".format(str(i+1), fpath))
