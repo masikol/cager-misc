@@ -99,7 +99,7 @@ del valid_options
 
 if len(fa_fpaths) == 0:
 
-    # Check *.fasta или *.fa in the working dir
+    # Check *.fasta *.fa in the working dir
     fa_fpaths = os.listdir(".")
     fa_fpaths = tuple(filter(is_fasta, fa_fpaths))
 

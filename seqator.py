@@ -141,7 +141,7 @@ import shutil
 
 # Proceed
 moved_counter = 0
-for fpath in fpaths:                       # выводим в него построчно нужные данные
+for fpath in fpaths:
 
     # Retrieve coverage from file name
     cov = fpath.split('_')[5].replace(',', '.')      # Get coverage + .dna

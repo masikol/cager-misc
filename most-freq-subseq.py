@@ -33,7 +33,7 @@ def platf_depend_exit(exit_code):
 
 def print_help():
     print("""\n  |=== most-freq-subseq.py ===|\n
-This script finds N most frequently occuring subsequenсes
+This script finds N most frequently occuring subsequences
    of given length for each sequence in FASTA file.""")
     print("Format of input: `*.fasta(.gz)` or `*.fa(.gz)` file and length of query subsequence.")
     print("Version: {}; {} edition.\n".format(__version__, __last_update_date__))

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.2.b"
+__version__ = "1.3.a"
 # Year, month, day
-__last_update_date__ = "2020-04-10"
+__last_update_date__ = "2020-04-15"
 
 # Check python interpreter version
 
@@ -451,8 +451,28 @@ def find_overlap_e2e(seq1, seq2, mink, maxk):
 #   multiplicity of contigs
 exp_genome_len = 0
 
-s_omat = [[0 for i in range(N)] for j in range (N)]
-e_omat = [[0 for i in range(N)] for j in range (N)]
+# Matrices for amending expected genome length:
+#
+# Explanation:
+# For example, we have matrix SmE (maxtrix of starts matching ends):
+#
+# 0 0 0
+# 5 0 0
+# 0 0 7
+#
+# It is matrix 3x3, therefore, we have 3 contigs.
+# SmE[2][2] == 7, therefore contig number 2 (0-based index) is circular with overlap of 7 b.p.
+# SmE[0][1] == 5, therefore start of contig #0 matches end of contig #1.
+
+# Matrix for starts matching ends:
+SmE = [[0 for i in range(N)] for j in range (N)]
+# Matrix for ends matching starts:
+EmS = [[0 for i in range(N)] for j in range (N)]
+# Matrix for starts matching starts (reverse-complement matching):
+SmS = [[0 for i in range(N)] for j in range (N)]
+# Matrix for ends matching ends (reverse-complement matching):
+EmE = [[0 for i in range(N)] for j in range (N)]
+
 
 # Find matching ends of contigs
 full_log = ""
@@ -466,7 +486,6 @@ for i in range(len(contigs_names)):
         print("\nContig '{}' is shorter than mink ({} b.p.). Omitting it...".format(voc_ends[i][NAME], mink))
         full_log += "{}: contig is shorter than mink ({} b.p.). Omitting it...\n".format(voc_ends[i][NAME], mink)
         sys.stdout.write("\r{}/{}".format(i+1, N))
-        sys.stdout.flush()
         continue
     # end if
 
@@ -483,8 +502,8 @@ for i in range(len(contigs_names)):
         # Amendment for calculating expected genome length.
         # The longest overlap is the most significant one,
         #   therefore we will save maximum overlap.
-        s_omat[i][i] = overlap
-        e_omat[i][i] = overlap
+        SmE[i][i] = overlap
+        EmS[i][i] = overlap
     # end if
 
     # === Compare start to rc-end of current contig ===
@@ -518,8 +537,8 @@ for i in range(len(contigs_names)):
             # Amendment for calculating expected genome length.
             # The longest overlap is the most significant one,
             #   therefore we will save maximum overlap.
-            s_omat[i][j] = overlap
-            e_omat[j][i] = overlap
+            SmE[i][j] = overlap
+            EmS[j][i] = overlap
         # end if
 
         # === Compare i-th end to j-th start ===
@@ -539,8 +558,8 @@ for i in range(len(contigs_names)):
             # Amendment for calculating expected genome length.
             # The longest overlap is the most significant one,
             #   therefore we will save maximum overlap.
-            e_omat[i][j] = overlap
-            s_omat[j][i] = overlap
+            EmS[i][j] = overlap
+            SmE[j][i] = overlap
         # end if
 
         # === Compare i-th start to reverse-complement j-th start ===
@@ -560,8 +579,8 @@ for i in range(len(contigs_names)):
             # Amendment for calculating expected genome length.
             # The longest overlap is the most significant one,
             #   therefore we will save maximum overlap.
-            s_omat[i][j] = overlap
-            s_omat[j][i] = overlap
+            SmS[i][j] = overlap
+            SmS[j][i] = overlap
         # end if
 
         # === Compare i-th end to reverse-complement j-th end ===
@@ -581,8 +600,8 @@ for i in range(len(contigs_names)):
             # Amendment for calculating expected genome length.
             # The longest overlap is the most significant one,
             #   therefore we will save maximum overlap.
-            e_omat[i][j] = overlap
-            e_omat[j][i] = overlap
+            EmE[i][j] = overlap
+            EmE[j][i] = overlap
         # end if
 
         # === Compare i-th start to j-th start ===
@@ -631,7 +650,6 @@ for i in range(len(contigs_names)):
     # end for
 
     sys.stdout.write("\r{}/{}".format(i+1, N))
-    sys.stdout.flush()
 # end for
 
 
@@ -693,6 +711,9 @@ with open(adj_cont_fpath, 'w') as outfile:
 # end with
 print("Done\n")
 
+# Calculate actual LQ-coefficient
+LQ = round(100 - (rev_LQ * 100) / (N * 2), 2)
+
 full_log_fpath = "{}{}combinator_full_matching_log.txt".format(prefix, '' if prefix == '' else '_')
 
 print("Writing full matching log to '{}'".format(full_log_fpath))
@@ -710,41 +731,56 @@ print("Amending expected genome length...")
 
 print_counter = 0
 print_end = 2 * N / 100
-sys.stdout.write("0% completed")
+sys.stdout.write(r"0% completed")
 
-for prim_matr, sec_matr in zip((s_omat, e_omat), (e_omat, s_omat)):
+# For comments for loop below, let x denote to start of a contig and y -- to end of a contig.
+# On the second iteration it will be vice versa: x will be end of a contig and y -- start.
+# But for clarity, in comments we will write explicitly: "start" for x and "end" for y.
+
+for XmY, YmX, XmX in zip((SmE, EmS), (EmS, SmE), (SmS, EmE)):
 
     for i in range(N):
 
-        overlap = max(prim_matr[i])
+        # Find maximum overlap considering current start.
+        # It can match either some end (XmY) or some rc-start (XmX):
+        overlap = max(max(XmY[i]), max(XmX[i]))
 
+        # If current start is adjacent to any other terminus
         if overlap != 0:
 
-            mate_idx = prim_matr[i].index(overlap)
+            # Find matrix, in which found maximum element is
+            mate_matr = XmY if overlap in XmY[i] else XmX
+            # Find number of contig, to which current start is adjasent
+            mate_idx = mate_matr[i].index(overlap)
+            # Amend genome length -- substract length of the overlap
+            #   multiplied by minimum of multiplicity of adjacent contigs
             exp_genome_len -= overlap * min(voc_ends[i][MULT], voc_ends[mate_idx][MULT])
 
+            # Set all elements in XmY, YmX and XmX, which overlaps with current start.
+            # I.e. not only maximum one -- all.
+            # XmY[j][i] has nothing to do with current start -- it should be left >0, if it is.
+            # That is why we actually need XmX matrices.
             for j in range(N):
 
-                if prim_matr[i][j] != 0:
-
-                    prim_matr[i][j] = 0
-                    sec_matr[i][j] = 0
-                    prim_matr[j][i] = 0
-                    sec_matr[j][i] = 0
-                # end if
+                XmY[i][j] = 0
+                YmX[j][i] = 0
+                YmX[i][j] = 0
+                XmX[i][j] = 0
+                XmX[j][i] = 0
             # end for
         # end if
 
         print_counter += 1
-        sys.stdout.write("\r{}% completed".format(round(print_counter / print_end, 2)))
+        sys.stdout.write("\r")
+        sys.stdout.write(r"{}% completed".format(round(print_counter / print_end, 2)))
     # end for
 # end for
+
 
 summary_fpath = "{}{}combinator_summary_FQ.txt".format(prefix, '' if prefix == '' else '_')
 
 print("\n\nWriting summary to '{}'\n".format(summary_fpath))
 
-LQ = round(100 - (rev_LQ * 100) / (N * 2), 2)
 
 with open(summary_fpath, 'w') as outfile:
 
@@ -765,7 +801,7 @@ with open(summary_fpath, 'w') as outfile:
         if avg_coverage > 1e-6:
             print_func("Average coverage: {}\n".format(round(avg_coverage / N, 3)))
         else:
-            print_func("Average coverage: -\n")
+            print_func("Average coverage: \n")
         # end if
         print_func("LQ-coefficient: {}\n".format((LQ)))
     # end for

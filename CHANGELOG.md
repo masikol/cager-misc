@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-04-15 edition.
+
+- combinator-FQ: calculating of expected genome length is improved;
+
+### Version changes:
+
+- combinator-FQ: `1.2.b --> 1.3.a`;
+
 ## 2020-04-14 edition.
 
 - find-seq script added;
