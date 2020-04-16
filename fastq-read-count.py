@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 # ----------------------------------------------------------------------------------
-# Script counts total amount of reads in all fastq files
+# Script counts total amount of reads ans bases in fastq files
 #-----------------------------------------------------------------------------------
 
-__version__ = "1.0.a"
-__last_update_date__ = "2020-04-13"
+__version__ = "1.1.a"
+__last_update_date__ = "2020-04-16"
 
 import sys
 
@@ -36,7 +36,7 @@ def platf_depend_exit(exit_code=0):
 
 
 def print_help():
-    print("\nScript 'fastq-read-count.py' counts amount of reads in fastq file(s).\n")
+    print("\nScript 'fastq-read-count.py' counts amount of reads and bases in fastq file(s).\n")
     print("Version {}; {} edition.".format(__version__, __last_update_date__))
     print("\nUsage:")
     print("  python3 fastq-read-count.py first.fastq second.fastq.gz third.fq.gz")
@@ -113,34 +113,51 @@ import gzip
 LINES_IN_READ = 4 # 4 lines per fastq record
 
 total_read_num = 0
+total_base_num = 0
 
 
 with open("fastq-read-count_result.tsv", 'w') as outfile:
 
-    outfile.write('\t'.join(("File", "Number of reads")) + '\n')
+    outfile.write('\t'.join(("File", "Number of reads", "Number of bases")) + '\n')
 
     for i, fpath in enumerate(fpaths):
 
-        read_counter = 0
+        line_counter = 0
+        base_counter = 0
         # Select open function
         open_func = gzip.open if fpath.endswith(".gz") else open
 
         with open_func(fpath) as infile:
-            read_num = int(sum(1 for line in infile)) // LINES_IN_READ # count lines
+
+            j = 1
+            line_counter = 0
+            for line in infile:
+                if j == 2: # count bases
+                    base_counter += len(line.strip())
+                elif j == 4:
+                    j = 0 # reset
+                # end if
+                j += 1
+                line_counter += 1
+            read_num = int(line_counter // LINES_IN_READ) # count lines
         # end with
 
         total_read_num += read_num
+        total_base_num += base_counter
 
-        # Configure number with space-separated digit triades:
+        # Configure numbers with space-separated digit triades:
         str_read_num = "{:,}".format(read_num).replace(',', ' ')
+        str_base_num = "{:,}".format(base_counter).replace(',', ' ')
 
-        print("{}. '{}' - {} reads".format(i + 1, os.path.basename(fpath), str_read_num))
-        outfile.write('\t'.join((os.path.basename(fpath), str(read_num))) + '\n')
+        print("{}. '{}' - {} reads; {} bases".format(i + 1, os.path.basename(fpath), str_read_num, str_base_num))
+        outfile.write('\t'.join((os.path.basename(fpath), str(read_num),str(base_counter))) + '\n')
     # end for
 
-    # Write total number of reads
+    # Write total number of reads and bases
     print("Total: {:,} reads.".format(total_read_num).replace(',', ' '))
-    outfile.write('\t'.join(("Total:", str(total_read_num))) + '\n')
+    print("Total: {:,} bases.".format(total_base_num).replace(',', ' '))
+    outfile.write('\t'.join(("Total: ", str(total_read_num))) + ' reads\n')
+    outfile.write('\t'.join(("Total: ", str(total_base_num))) + ' bases\n')
 # end with
 
 print("Completed!")

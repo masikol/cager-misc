@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-04-16 edition.
+
+- fastq-read-count: now counts number of bases additionaly;
+
+### Version changes:
+
+- fastq-read-count: `1.0.a --> 1.1.a`;
+
 ## 2020-04-15 edition.
 
 - combinator-FQ: calculating of expected genome length is improved;
