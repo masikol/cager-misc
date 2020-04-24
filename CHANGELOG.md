@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-04-24 edition.
+
+- combinator-FQ: compatibility with a5 improved;
+
+### Version changes:
+
+- combinator-FQ: `1.3.a --> 1.3.b`
+
 ## 2020-04-16 edition.
 
 - fastq-read-count: now counts number of bases additionaly;

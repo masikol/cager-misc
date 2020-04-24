@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.3.a"
+__version__ = "1.3.b"
 # Year, month, day
-__last_update_date__ = "2020-04-15"
+__last_update_date__ = "2020-04-24"
 
 # Check python interpreter version
 
@@ -236,11 +236,7 @@ compl_dict = {
     'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G',
     'R': 'Y', 'Y': 'R', 'S': 'S', 'W': 'W',
     'K': 'M', 'M': 'K', 'B': 'V', 'D': 'H',
-    'H': 'D', 'V': 'B', 'U': 'A', 'N': 'N',
-    'a': 't', 't': 'a', 'g': 'c', 'c': 'g',
-    'r': 'y', 'y': 'r', 's': 's', 'w': 'w',
-    'k': 'm', 'm': 'k', 'b': 'v', 'd': 'h',
-    'h': 'd', 'v': 'b', 'u': 'a', 'n': 'n'
+    'H': 'D', 'V': 'B', 'U': 'A', 'N': 'N'
 }
 
 # Function returns complement "comrade" of given base
@@ -281,7 +277,7 @@ with open_func(contigs_fpath) as contigs_file:
         line = fmt_func(line)
         if line[0].startswith('>'):
             contigs_names.append(line[1:])
-            contigs_seqs.append(seq)
+            contigs_seqs.append(seq.upper())
             seq = ""
         else:
             seq += line
@@ -310,6 +306,8 @@ FULL_NAME, NAME, LEN, COV, GC, START, RC_START, END, RC_END, START_MATCH, END_MA
 
 # Iterate over contigs and form voc_ends dictionary
 for i, contig_name in enumerate(contigs_names):
+
+    contig_name = contig_name.strip("_")
 
     contig_len = len(contigs_seqs[i])
     total_length += contig_len
