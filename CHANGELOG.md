@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-06-15 edition.
+
+- combinator-FQ: errorneous handling of SPADEs's `NODE_1` with zero coverage fixed;
+
+### Version changes:
+
+- combinator-FQ: `1.3.b --> 1.3.c`
+
 ## 2020-04-24 edition.
 
 - combinator-FQ: compatibility with a5 improved;

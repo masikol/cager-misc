@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.3.b"
+__version__ = "1.3.c"
 # Year, month, day
-__last_update_date__ = "2020-04-24"
+__last_update_date__ = "2020-06-15"
 
 # Check python interpreter version
 
@@ -364,6 +364,18 @@ for i, contig_name in enumerate(contigs_names):
 
 del contigs_seqs
 
+# Coverage of SPAdes's NODE_1 can be zero. In this case we cannot calculate multiplicity of contigs.
+# 'calc_multplty' (calculate multiplicity) will indicate whether we can calculate multiplicity.
+if voc_ends[0][NAME] == "NODE_1" and voc_ends[0][COV] < 1e-6:
+    print("\n'{}' has zero coverage (less than 1e-6 actually).".format(voc_ends[0][FULL_NAME]))
+    print("Multiplicity of contigs cannot be calculated.\n")
+    calc_multplty = False # We have SPAdes assembly, and coverage of NODE_1 is zero
+elif voc_ends[0][NAME] == "NODE_1":
+    calc_multplty = True # We have SPAdes assembly, and coverage of NODE_1 is non-zero
+else:
+    calc_multplty = False # We have non-SPAdes assembly, no coverage provided
+# end if
+
 # Total number of contigs
 N = len(contigs_names)
 
@@ -676,22 +688,20 @@ with open(adj_cont_fpath, 'w') as outfile:
         outfile.write(str(voc_ends[i][GC]) + '\t')
 
         # Calculate multiplicity of contig:
-        if voc_ends[i][COV] != '-':
-            muliplty = round(voc_ends[i][COV] / voc_ends[0][COV], 1)
+        if calc_multplty:
+
+            multplty = round(voc_ends[i][COV] / voc_ends[0][COV], 1)
 
             # Consider multiplicity of contigs in calculating of expected genome length
-            exp_genome_len += max(round(muliplty), 1) * voc_ends[i][LEN]
-            voc_ends[i][MULT] = max(round(muliplty), 1)
-
-            muliplty = str(muliplty)
+            exp_genome_len += max(round(multplty), 1) * voc_ends[i][LEN]
+            voc_ends[i][MULT] = max(round(multplty), 1)
         else:
-            muliplty = '-'
+            multplty = '-'
             exp_genome_len += voc_ends[i][LEN]
             voc_ends[i][MULT] = 1
         # end if
 
-        outfile.write(muliplty + '\t\t') # leave empty field for annotation
-
+        outfile.write("{}\t\t".format(multplty)) # leave empty field for annotation
 
         # Write information about discovered adjecency
         for idx, eol in zip((START_MATCH, END_MATCH), ('\t', '\n')):
