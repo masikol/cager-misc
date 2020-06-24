@@ -2,7 +2,9 @@
 
 Miscellaneous computational tools from [Laboratory](http://mbio.bas-net.by/en/ob-institute/struktura-instituta/cagii/) "**C**enter of **A**nalytical and **G**enetic **E**ngineering **R**esearch".
 
-To use any, you need Python interpreter (version 3.X). [Here you can download Python](https://www.python.org/downloads/).
+To use any, except "pub.R", you need Python interpreter (version 3.X). [Here you can download Python](https://www.python.org/downloads/).
+
+To use "pub.R", you need R.
 
 List of tools with links to manuals:
 - [combinator-FQ](https://www.github.com/masikol/cager-misc/wiki/combinator-FQ): script identifies adjecent contigs and calculates summary including **LQ**-coefficient;
@@ -16,3 +18,4 @@ List of tools with links to manuals:
 - [NOS](https://www.github.com/masikol/cager-misc/wiki/NOS): sript counts non-overalapping occurences of query sequence (and it's reverse complement "comrade") in `fasta` file(s);
 - [packer-dna-to-fasta](https://www.github.com/masikol/cager-misc/wiki/packer-dna-to-fasta): script packs `.dna` [SPAdes](http://cab.spbu.ru/software/spades/) contigs in 'contigs' directory to single multi-fasta file;
 - [seqator](https://www.github.com/masikol/cager-misc/wiki/seqator): script moves `.dna` [SPAdes](http://cab.spbu.ru/software/spades/) contigs with coverage less than specified one from `contigs/` directory to directory `cov_below_x/`;
+- [pub](https://www.github.com/masikol/cager-misc/wiki/pub): script for automatic picking up sequencing barcodes;
