@@ -1,5 +1,9 @@
 # cager-misc changelog
 
+## 2020-06-14 edition
+
+- pub.R added.
+
 ## 2020-06-15 edition.
 
 - combinator-FQ: errorneous handling of SPADEs's `NODE_1` with zero coverage fixed;
