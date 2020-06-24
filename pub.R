@@ -6,7 +6,7 @@
 #    are the most dissimilar from others.
 
 script.version <- "1.0.a"
-last.update.date <- "2020.06.24"
+# Last modified 2020.06.24
 
 ######################
 # Parse CL arguments #
@@ -16,6 +16,7 @@ usage.msg <- "pub.R\nUsage:\n  Rscript pub.R <csv_file_with_barcodes> <number_of
 
 # Print help message
 if (commandArgs(T)[1] %in% c("-h", "-help", "--help")) {
+  cat(paste0("pub.R; Version ", script.version, '\n'))
   cat(paste0(usage.msg, '\n'))
   cat("Example:\n")
   cat("Pick up 28 barcodes from file `my_favorite_barcodes.csv`.\n")
@@ -41,6 +42,8 @@ if (! grepl("^[0-9]+$", num.samples)) {
 } else {
   num.samples <- as.numeric(num.samples)
 }
+
+cat(paste0("pub.R; Version ", script.version, '\n\n'))
 
 if (! require(cluster)) {
   cat("Package 'cluster' is not installed!\n")
