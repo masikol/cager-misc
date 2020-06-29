@@ -7,7 +7,7 @@ To use any, except "pub.R", you need Python interpreter (version 3.X). [Here you
 To use "pub.R", you need R.
 
 List of tools with links to manuals:
-- [combinator-FQ](https://www.github.com/masikol/cager-misc/wiki/combinator-FQ): script identifies adjecent contigs and calculates summary including **LQ**-coefficient;
+- [combinator-FQ](https://www.github.com/masikol/cager-misc/wiki/combinator-FQ): genome assembly facilitating. Script identifies adjecent contigs and calculates summary including **LQ**-coefficient;
 - [fasta-GC-content](https://www.github.com/masikol/cager-misc/wiki/fasta-GC-content): script calculates GC-content of each sequence in `fasta` file(s);
 - [mean-qual](https://www.github.com/masikol/cager-misc/wiki/mean-qual): script calculates mean quality of reads in `fastq` file(s);
 - [fastq2fasta](https://www.github.com/masikol/cager-misc/wiki/fastq2fasta): script converts `fastq` files to `fasta` format;
@@ -18,4 +18,5 @@ List of tools with links to manuals:
 - [NOS](https://www.github.com/masikol/cager-misc/wiki/NOS): sript counts non-overalapping occurences of query sequence (and it's reverse complement "comrade") in `fasta` file(s);
 - [packer-dna-to-fasta](https://www.github.com/masikol/cager-misc/wiki/packer-dna-to-fasta): script packs `.dna` [SPAdes](http://cab.spbu.ru/software/spades/) contigs in 'contigs' directory to single multi-fasta file;
 - [seqator](https://www.github.com/masikol/cager-misc/wiki/seqator): script moves `.dna` [SPAdes](http://cab.spbu.ru/software/spades/) contigs with coverage less than specified one from `contigs/` directory to directory `cov_below_x/`;
+- [dedupl-fastq](https://www.github.com/masikol/cager-misc/wiki/dedupl-fastq): script is designed for deduplication of fastq files;
 - [pub](https://www.github.com/masikol/cager-misc/wiki/pub): script for automatic picking up sequencing barcodes;

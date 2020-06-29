@@ -1,5 +1,9 @@
 # cager-misc changelog
 
+## 2020-06-29 edition
+
+- dedupl-fastq.py added.
+
 ## 2020-06-14 edition
 
 - pub.R added.
