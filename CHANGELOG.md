@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-10-08 edition
+
+- combinator-FQ now rounds coverage with 2 trailing digits.
+
+### Version changes:
+
+- combinator-FQ: `1.3.c --> 1.3.d`
+
 ## 2020-06-29 edition
 
 - dedupl-fastq.py added.

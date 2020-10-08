@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.3.c"
+__version__ = "1.3.d"
 # Year, month, day
-__last_update_date__ = "2020-06-15"
+__last_update_date__ = "2020-10-08"
 
 # Check python interpreter version
 
@@ -262,7 +262,7 @@ FORMATTING_FUNCS = (
 
 print("\n  combinator-FQ (Version {}; {} edition)\n".format(__version__, __last_update_date__))
 
-print("File '{}' is processing...".format(contigs_fpath))
+print("File '{}' is being processed...".format(contigs_fpath))
 
 open_func = OPEN_FUNCS[ is_gzipped(contigs_fpath) ]
 fmt_func = FORMATTING_FUNCS[ is_gzipped(contigs_fpath) ]
@@ -316,7 +316,7 @@ for i, contig_name in enumerate(contigs_names):
     if not re.search(spades_patt, contig_name) is None:
 
         # Parse fasta header:
-        cov = float(contig_name.split('_')[5]) # get coverage
+        cov = round(float(contig_name.split('_')[5]), 2) # get coverage
 
         # Collecting coverage statistics
         avg_coverage += cov
@@ -807,9 +807,9 @@ with open(summary_fpath, 'w') as outfile:
         else:
             print_func("Max coverage: -\n")
         if avg_coverage > 1e-6:
-            print_func("Average coverage: {}\n".format(round(avg_coverage / N, 3)))
+            print_func("Mean coverage: {}\n".format(round(avg_coverage / N, 3)))
         else:
-            print_func("Average coverage: \n")
+            print_func("Mean coverage: \n")
         # end if
         print_func("LQ-coefficient: {}\n".format((LQ)))
     # end for
