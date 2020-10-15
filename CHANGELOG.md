@@ -1,5 +1,9 @@
 # cager-misc changelog
 
+## 2020-10-15 edition
+
+- sum-up-snv (version `0.1.c`) added.
+
 ## 2020-10-08 edition
 
 - combinator-FQ now rounds coverage with 2 trailing digits.

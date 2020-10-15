@@ -20,3 +20,4 @@ List of tools with links to manuals:
 - [seqator](https://www.github.com/masikol/cager-misc/wiki/seqator): script moves `.dna` [SPAdes](http://cab.spbu.ru/software/spades/) contigs with coverage less than specified one from `contigs/` directory to directory `cov_below_x/`;
 - [dedupl-fastq](https://www.github.com/masikol/cager-misc/wiki/dedupl-fastq): script is designed for deduplication of fastq files;
 - [pub](https://www.github.com/masikol/cager-misc/wiki/pub): script for automatic picking up sequencing barcodes;
+- [sum-up-snv](https://www.github.com/masikol/cager-misc/wiki/pub/sum-up-snv): script for summarizing variation ant single specified position in SAM/BAM file;
