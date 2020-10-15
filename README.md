@@ -2,10 +2,6 @@
 
 Miscellaneous computational tools from [Laboratory](http://mbio.bas-net.by/en/ob-institute/struktura-instituta/cagii/) "**C**enter of **A**nalytical and **G**enetic **E**ngineering **R**esearch".
 
-To use any, except "pub.R", you need Python interpreter (version 3.X). [Here you can download Python](https://www.python.org/downloads/).
-
-To use "pub.R", you need R.
-
 List of tools with links to manuals:
 - [combinator-FQ](https://www.github.com/masikol/cager-misc/wiki/combinator-FQ): genome assembly facilitating. Script identifies adjecent contigs and calculates summary including **LQ**-coefficient;
 - [fasta-GC-content](https://www.github.com/masikol/cager-misc/wiki/fasta-GC-content): script calculates GC-content of each sequence in `fasta` file(s);
