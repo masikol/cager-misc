@@ -5,8 +5,8 @@
 # pub.R uses pam algorithm (from 'cluster' package) to cluster barcodes and select ones that
 #    are the most dissimilar from others.
 
-script.version <- "1.0.a"
-# Last modified 2020.06.24
+script.version <- "1.1.a"
+# Last modified 2020.10.23
 
 ######################
 # Parse CL arguments #
@@ -32,6 +32,7 @@ if (length(commandArgs(T)) != 2) {
 
 barcodes.fpath <- commandArgs(T)[1]
 num.samples <- commandArgs(T)[2]
+
 
 if (! file.exists(barcodes.fpath)) {
   stop(paste0("File '", barcodes.fpath, "' does not exist!"))
@@ -372,6 +373,10 @@ if (nrow(barcodes.df) < num.samples) {
   err.msg <- paste(err.msg, sprintf("Number of samples: %d;\n", num.samples),
                   sprintf("Number of barcodes: %d;\n", nrow(barcodes.df)))
   stop(err.msg)
+} else if (nrow(barcodes.df) == num.samples) {
+  err.msg <- "Specified number of samples equals to number of barcodes in file!\n"
+  err.msg <- paste(err.msg, "Why not just to use all barcodes from this file?")
+  stop(err.msg)
 }
 
 # Calculate dissimilarity matrix
@@ -395,76 +400,60 @@ if (double) {
                                barcodes.df$Idx_name_R, sep = ' -- ')
 }
 
-# Cluster barcodes
-message("Clustering...")
-pam.clusters <- pam(diss.matr, num.samples, diss = T)
+ballance <-FALSE
+backup.flag <- TRUE
+clustering.msg <- "Clustering..."
 
-# Get representative barcodes
-medoids <- pam.clusters$medoids
-
-
-# == Color ballance ==
-message("Checking color ballance...")
-# Check color ballance
-ballance <- check.color.ballance(barcodes.df, medoids, double)
-
-# If ballance is corrupted -- inform a user and backup medoids.
-if (! ballance) {
-  message("Color ballance is corrupted.")
-  message("Attepmting to reach color ballance...")
-  
-  # Backup
-  init.medoids <- medoids
-  
-  # Convert this matrix to data frame -- it will be more convinient
-  silh.df <- as.data.frame(pam.clusters$silinfo$widths)
-  # Add a column with names
-  silh.df$name <- rownames(pam.clusters$silinfo$widths)
-}
-
-# while ballance is not reached do:
-# 1. Find medoid with the smallest silhouette score. It will be called "old" barcode.
-#    It's cluster will have name N.
-# 2. Find barcode in the N cluster with the next greatest sulhouette score.
-# 3. Replace old barcode with new one.
-# 4. Check ballance again.
-# end
 while (! ballance) {
-
-  # If no more barcodes left -- inform a user, break and use backuped barcodes.
-  if (nrow(silh.df) < num.samples) {
-    message("Color ballance cannot be reached.")
-    medoids <- init.medoids
-    break
-  }
-
-  # Find medoid with the smallest silhouette score.
-  med.silh.scores <- subset(silh.df, silh.df$name %in% medoids)
-  min.silh.idx <- which.min(med.silh.scores[,3])
-  min.clust.idx <- med.silh.scores$cluster[min.silh.idx]
   
-  # Extract N cluster as separate dataframe
-  min.cluster <- subset(silh.df, silh.df$cluster == min.clust.idx)
-  # Remove old barcode from this dataframe
-  min.cluster <- subset(min.cluster, min.cluster$name != med.silh.scores$name[min.silh.idx])
+  # Cluster barcodes
+  message(clustering.msg)
+  pam.clusters <- pam(diss.matr, num.samples, diss = T)
   
-  # Get name of old barcode
-  old.barcode <- med.silh.scores$name[min.silh.idx]
-  # Get name of new barcode
-  next.barcode <- subset(min.cluster,
-                         min.cluster$sil_width == max(min.cluster$sil_width))$name
+  # Get best barcodes
+  medoids <- pam.clusters$medoids
   
-  # Replace old barcode with new one
-  medoids <- replace(medoids, medoids == old.barcode, next.barcode)
-  # Remove old barcode from 'silh.df'
-  silh.df <- subset(silh.df, silh.df$name != old.barcode)
-  
-  # Check ballance once again
+  message("Checking color ballance...")
   ballance <- check.color.ballance(barcodes.df, medoids, double)
-}
-
-if (ballance) {
-  message("OK")
+  
+  if (ballance) {
+    message("OK")
+  } else {
+    
+    clustering.msg <- "Relustering..."
+    message("Color ballance is corrupted.")
+    message("Attepmting to reach color ballance...")
+    
+    # Backup
+    if (backup.flag) {
+      init.medoids <- medoids
+      backup.flag <- FALSE
+    }
+    
+    # Convert this matrix to data frame -- it will be more convinient
+    silh.df <- as.data.frame(pam.clusters$silinfo$widths)
+    # Add a column with names
+    silh.df$name <- rownames(pam.clusters$silinfo$widths)
+    
+    # If no more barcodes left -- inform a user, break and use backuped barcodes.
+    if (nrow(silh.df) < num.samples) {
+      message("Color ballance cannot be reached.")
+      medoids <- init.medoids
+      break
+    }
+    
+    # Find medoid with the smallest silhouette score.
+    med.silh.scores <- subset(silh.df, silh.df$name %in% medoids)
+    min.silh.idx <- which.min(med.silh.scores[,3])
+    old.barcode <- med.silh.scores$name[min.silh.idx]
+    
+    # Remove medoid with min silhouette score from dissimilarity matrix
+    #   and from dataframe
+    diss.matr <- diss.matr[rownames(diss.matr) != old.barcode,
+                           colnames(diss.matr) != old.barcode]
+    silh.df <- subset(silh.df, silh.df$name != old.barcode)
+    cat("\n")
+  }
 }
 
 # Print the result

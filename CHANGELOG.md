@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-10-23 edition
+
+- pub: checked algoeithm of finding color ballanced set of barcodes: now pub reclusters all barcodes except of the one having minimal silhouette score.
+
+### Version changes:
+
+- pub: `1.0.a --> 1.1.a`
+
 ## 2020-10-15 edition
 
 - sum-up-snv (version `0.1.c`) added.
