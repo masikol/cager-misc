@@ -193,12 +193,12 @@ def make_outfpaths(fq_fpath):
 
     ok_out_fpath = os.path.join(
         os.path.dirname(fq_fpath),
-        'ok-concat_{}'.format(os.path.basename(fq_fpath))
+        'ok-concat_{}'.format(os.path.basename(fq_fpath).replace('.gz', ''))
     )
 
     trash_out_fpath = os.path.join(
         os.path.dirname(fq_fpath),
-        'trash-concat_{}'.format(os.path.basename(fq_fpath))
+        'trash-concat_{}'.format(os.path.basename(fq_fpath).replace('.gz', ''))
     )
 
     return ok_out_fpath, trash_out_fpath
