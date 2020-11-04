@@ -10,24 +10,23 @@ __last_update_date__ = "2020-11-04"
 import sys
 
 if sys.version_info.major < 3:
-    print( "\nYour python interpreter version is " + "%d.%d" % (sys.version_info.major,
+    print( '\nYour python interpreter version is ' + '%d.%d' % (sys.version_info.major,
         sys.version_info.minor) )
-    print("   Please, use Python 3.\a")
+    print('   Please, use Python 3.\a')
     # In python 2 'raw_input' does the same thing as 'input' in python 3.
     # Neither does 'input' in python2.
-    if sys.platform.startswith("win"):
-        raw_input("Press ENTER to exit:")
+    if sys.platform.startswith('win'):
+        raw_input('Press ENTER to exit:')
     # end if
     sys.exit(1)
 else:
-    print("\nPython {}.{}.{}\n".format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
+    print('\nPython {}.{}.{}\n'.format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
 # end if
 
 
 import os
 import re
 import getopt
-import difflib
 
 
 import gzip
@@ -38,17 +37,17 @@ OPEN_FUNCS = (open, gzip.open)
 #   because data from .gz is read as 'bytes', not 'str'.
 FORMATTING_FUNCS = (
     lambda line: line.strip(),   # format text line
-    lambda line: line.decode("utf-8").strip()  # format gzipped line
+    lambda line: line.decode('utf-8').strip()  # format gzipped line
 )
 
 
-from time import time, strftime, localtime, gmtime
+from time import time, strftime, gmtime
 START_TIME = time() # consider time of importing as start time
 def getwt():
     """
     Function (get work time) returns time HH:MM:SS that has passed from start_time.
     """
-    return strftime("%H:%M:%S", gmtime( time() - START_TIME))
+    return strftime('%H:%M:%S', gmtime( time() - START_TIME))
 # end def getwt
 
 
@@ -59,8 +58,8 @@ def platf_depend_exit(exit_code):
 
     :type exit_code: int;
     """
-    if sys.platform.startswith("win"):
-        input("Press ENTER to exit:")
+    if sys.platform.startswith('win'):
+        input('Press ENTER to exit:')
     # end if
     sys.exit(exit_code)
 # end def platf_depend_exit
@@ -72,7 +71,7 @@ def handle_cl_args():
         opts, args = getopt.gnu_getopt(sys.argv[1:], 'hvp:', ['help', 'version' 'primers='])
     except getopt.GetoptError as opt_err:
         print( str(opt_err) )
-        print("See help ('-h' option)")
+        print('See help (`-h` option)')
         platf_depend_exit(2)
     # end try
 
@@ -82,12 +81,12 @@ def handle_cl_args():
 
     for arg in args:
         if not os.path.exists(arg):
-            print("Error: file '{}' does not exist!".format(arg))
+            print('Error: file `{}` does not exist!'.format(arg))
             platf_depend_exit(1)
         elif not is_fastq(arg):
-            print("Error: file '{}' does not look like a fastq file!".format(arg))
+            print('Error: file `{}` does not look like a fastq file!'.format(arg))
             print('The script detects fastq files by extention and can process gzipped files.')
-            print("Permitted extentions: '.fastq', '.fq', '.fastq.gz, '.fq.gz'")
+            print('Permitted extentions: `.fastq`, `.fq`, `.fastq.gz`, `.fq.gz`')
             platf_depend_exit(1)
         else:
             fq_fpaths.append(os.path.abspath(arg))
@@ -101,12 +100,12 @@ def handle_cl_args():
     for opt, arg in opts:
         if opt in ('-p', '--primers'):
             if not os.path.exists(arg):
-                print("Error: file '{}' does not exist!".format(arg))
+                print('Error: file `{}` does not exist!'.format(arg))
                 platf_depend_exit(1)
             elif not is_fasta(arg):
-                print("Error: file '{}' does not look like a fasta file!".format(arg))
+                print('Error: file `{}` does not look like a fasta file!'.format(arg))
                 print('The script detects fastq files by extention and can process gzipped files.')
-                print("Permitted extentions: '.fasta', '.fa', '.fasta.gz, '.fa.gz'")
+                print('Permitted extentions: `.fasta`, `.fa`, `.fasta.gz, `.fa.gz`')
                 platf_depend_exit(1)
             else:
                 primers_fpath = os.path.abspath(arg)
@@ -150,6 +149,14 @@ def handle_cl_args():
         # end if
     # end if
 
+    rc_dict = {
+        'A': 'T', 'T': 'A',
+        'G': 'C', 'C': 'G',
+        'N': 'N'
+    }
+    single_nucl_rc = lambda nucl: rc_dict[nucl]
+    rc = lambda seq: "".join(map(single_nucl_rc, seq[::-1]))
+
     # Retrieve primers
     primers_seqs = list()
 
@@ -159,10 +166,26 @@ def handle_cl_args():
 
     is_seq = lambda l: not l.startswith('>')
     with open_func(primers_fpath) as primers_file:
-        primers_seqs = tuple(map(str.strip, filter(is_seq, primers_file.readlines())))
+        primers_seqs = tuple(map(str.upper,                # to upper case
+            map(str.strip,                                 # srtip
+                filter(is_seq, primers_file.readlines())   # extract only sequences
+               )
+            )
+        )
     # end with
 
-    return fq_fpaths, primers_seqs
+    primers_seqs_and_rc = list()
+    for seq in primers_seqs:
+        try:
+            primers_seqs_and_rc.append( (seq, rc(seq)) )
+        except KeyError:
+            print('Error: the script cannot handle nucleotide characters except following: ATGCN')
+            print('Erroneous primer sequence: `{}`'.format(seq))
+            platf_depend_exit(1)
+        # end try
+    # end for
+
+    return fq_fpaths, primers_seqs_and_rc
 # end def handle_cl_args
 
 
@@ -170,12 +193,12 @@ def make_outfpaths(fq_fpath):
 
     ok_out_fpath = os.path.join(
         os.path.dirname(fq_fpath),
-        'ok-cmar_{}'.format(os.path.basename(fq_fpath))
+        'ok-concat_{}'.format(os.path.basename(fq_fpath))
     )
 
     trash_out_fpath = os.path.join(
         os.path.dirname(fq_fpath),
-        'trash-cmar_{}'.format(os.path.basename(fq_fpath))
+        'trash-concat_{}'.format(os.path.basename(fq_fpath))
     )
 
     return ok_out_fpath, trash_out_fpath
@@ -211,6 +234,7 @@ def fastq_records(fq_fpath):
                     'cmnt': lines[2],
                     'qual': line
                 }
+                lines.clear()
         # end for
     # end with
 # end def fastq_records
@@ -218,49 +242,88 @@ def fastq_records(fq_fpath):
 
 def write_fastq_record(fq_record, outfile):
     outfile.write('{}\n{}\n{}\n{}\n'.format(fq_record['seq_id'],
-                                            fq_record['seq'],
-                                            fq_record['cmnt'],
-                                            fq_record['qual'])
+            fq_record['seq'], fq_record['cmnt'], fq_record['qual'])
     )
 # end def write_fastq_record
 
 
-def cmar_clean(fq_fpath, primers_seqs):
+def concat_clean(fq_fpath, primers_seqs):
 
     ok_out_fpath, trash_out_fpath = make_outfpaths(fq_fpath)
+    ok_count, trash_count = 0, 0
 
-    matcher = difflib.SequenceMatcher(isjunk = lambda x: x == 'N')
+    nreads = sum(1 for _ in OPEN_FUNCS[int(fq_fpath.endswith('.gz'))](fq_fpath)) // 4
+    bar_len = int(os.get_terminal_size().columns * 0.50) - 1 # minus one for >
+    next_print_num = int(nreads * 0.05)
+    inc_num = next_print_num
+
+    sys.stdout.write('[{}] 0/{}'.format(' '*bar_len, nreads))
+    sys.stdout.flush()
 
     with open(ok_out_fpath, 'w') as ok_out_file, open(trash_out_fpath, 'w') as trash_out_file:
-        for fq_record in fastq_records(fq_fpath):
-            print('read')
-            matcher.set_seq1(fq_record['seq'].upper())
-            for prim_seq in primers_seqs:
-                print('primer')
-                matcher.set_seq2(prim_seq.upper())
 
-                print(matcher.get_matching_blocks())
-                input()
+        for i, fq_record in enumerate(fastq_records(fq_fpath)):
 
-            if is_mar:
-                write_fastq_record(fq_record, trash_out_fpath)
+            read_seq = fq_record['seq'].upper()
+            is_concat = False
+
+            for seqs in primers_seqs:
+                if read_seq.count(seqs[0]) + read_seq.count(seqs[1]) > 1:
+                    is_concat = True
+                    break
+                # end if
+            # end for
+
+            if is_concat:
+                write_fastq_record(fq_record, trash_out_file)
+                trash_count += 1
             else:
-                write_fastq_record(ok_out_fpath, trash_out_fpath)
+                write_fastq_record(fq_record, ok_out_file)
+                ok_count += 1
+            # end if
+
+            if i > next_print_num:
+                done_ratio = i / nreads
+                sys.stdout.write('\r[{}>{}] {}/{}'.format('='*int(bar_len*done_ratio),
+                    ' '*int(bar_len*(1-done_ratio)), i, nreads) )
+                sys.stdout.flush()
+                next_print_num += inc_num
+            # end if
         # end for
+
+        sys.stdout.write('\r[{}] {}/{}\n'.format('='*bar_len, nreads, nreads))
+        sys.stdout.flush()
     # end with
-# end def cmar_clean
+
+    print('Result files:')
+    for f in (ok_out_fpath, trash_out_fpath):
+        print(' `{}`'.format(f))
+    # end for
+
+    return ok_count, trash_count
+# end def concat_clean
 
 
 def main():
     fq_fpaths, primers_seqs = handle_cl_args()
 
-    print('{} - Start processing'.format(getwt()))
+    ok_count, trash_count = 0, 0
+    print('{} - Start.'.format(getwt()))
+
     for fq_fpath in fq_fpaths:
         print('{} - Processing file `{}`.'.format(getwt(), fq_fpath))
-        cmar_clean(fq_fpath, primers_seqs)
+        ok_count_tmp, trash_count_tmp = concat_clean(fq_fpath, primers_seqs)
+        ok_count += ok_count_tmp
+        trash_count += trash_count_tmp
         print('{} - File `{}` is procesed.'.format(getwt(), fq_fpath))
+        print('-'*10)
     # end for
+
+    print('Results: {} reads keeped, {} reads discarded.'.format('{:,}'.format(ok_count).replace(',', ' '),
+                                                                 '{:,}'.format(trash_count).replace(',', ' '))
+    )
 # end def main
+
 
 if __name__ == '__main__':
     main()
