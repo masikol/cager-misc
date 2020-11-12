@@ -1,5 +1,9 @@
 # cager-misc changelog
 
+## 2020-11-12 edition
+
+- kromsatel version `1.2.a` added.
+
 ## 2020-10-23 edition
 
 - pub: checked algoeithm of finding color ballanced set of barcodes: now pub reclusters all barcodes except of the one having minimal silhouette score.
