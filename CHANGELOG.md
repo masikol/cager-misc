@@ -2,7 +2,7 @@
 
 ## 2020-11-12 edition
 
-- kromsatel version `1.2.a` added.
+- kromsatel version `1.2.a` added, then added version `1.2.b` with code commented and some optimized operations.
 
 ## 2020-10-23 edition
 
