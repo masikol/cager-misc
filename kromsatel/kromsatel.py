@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__version__ = "1.2.b"
+__version__ = "1.2.c"
 # Year, month, day
-__last_update_date__ = "2020-11-12"
+__last_update_date__ = "2020-11-13"
 
 # |===== Check python interpreter version. =====|
 
@@ -109,8 +109,8 @@ def handle_cl_args():
 
     # Get arguments
     try:
-        opts, args = getopt.gnu_getopt(sys.argv[1:], 'hvd:t:', ['help', 'version',
-                                                                'db=', 'threads=']
+        opts, args = getopt.gnu_getopt(sys.argv[1:], 'hvd:t:p:', ['help', 'version',
+                                                                'db=', 'threads=' 'packet-size=']
         )
     except getopt.GetoptError as opt_err:
         print( str(opt_err) )
@@ -145,6 +145,7 @@ def handle_cl_args():
 
     db_fpath = None
     n_thr = 1
+    packet_size = 1000
 
     # Handle options
     for opt, arg in opts:
@@ -156,6 +157,18 @@ def handle_cl_args():
             else:
                 db_fpath = os.path.abspath(arg)
             # end if
+
+        # Handle packet size
+        elif opt in ("-p", "--packet-size"):
+            try:
+                packet_size = int(arg)
+                if packet_size <= 0:
+                    raise ValueError
+                # end if
+            except ValueError:
+                print(err_fmt("packet_size (-p option) must be positive integer number"))
+                platf_depend_exit(1)
+            # end try
 
         # Handle number of threads
         elif opt in ('-t', '--threads'):
@@ -195,68 +208,8 @@ def handle_cl_args():
         # end if
     # end for
 
-    return fq_fpaths, db_fpath, n_thr
+    return fq_fpaths, db_fpath, n_thr, packet_size
 # end def handle_cl_args
-
-
-def fastq2fasta(fq_fpath):
-    # Function converts fastq file to fasta format.
-    #
-    # :param fq_fpath: path to fastq file to be converted;
-    # :type fq_fpath: str;
-    #
-    # Returns path to result fasta file.
-
-    read_counter = 0
-    LINES_IN_READ = 4
-
-    if fq_fpath.endswith('.gz'):
-        # For writing bytes to file(s)
-        open_func = gzip.open
-        gt_chr = b'>'
-        out_mode = "wb"
-        endl = b'\n'
-        space = b' '
-    else:
-        # For writing strings to file(s)
-        open_func = open
-        gt_chr = '>'
-        out_mode = "w"
-        endl = '\n'
-        space = ' '
-    # end if
-
-    outfpath = re.search(r"(.+)\.f(ast)?q(.gz)?$", fq_fpath).group(1) + ".fasta"
-
-    with open_func(fq_fpath) as infile, open(outfpath, out_mode) as outfile:
-
-        read_counter = 0
-        # k == 1: Sequence name; k == 2: Sequence itself;
-        # k == 3: Comment line; k == 4: Quality line;
-        k = 1
-
-        for line in infile:
-
-            if k == 1: # write sequence name
-                line = gt_chr + line[1:].partition(space)[0]
-                outfile.write(line + endl)
-
-            elif k == 2: # write sequence line
-                outfile.write(line)
-
-            elif k == 4: # reset counter
-                k = 0
-            # end if
-
-            k += 1
-            read_counter += 1
-        # end for
-    # end with
-
-    print('{} - `{}` ({} reads) --> fasta'.format(getwt(), os.path.basename(fq_fpath), read_counter // LINES_IN_READ))
-
-    return outfpath
-# end def fastq2fasta
 
 
 def disco_align(query_fpath, db_fpath, n_thr):
@@ -303,9 +256,6 @@ def disco_align(query_fpath, db_fpath, n_thr):
                          outfmt
     )
 
-    sys.stdout.write('{} - Aligning...'.format(getwt()))
-    sys.stdout.flush()
-
     # Launch blastn
     pipe = sp.Popen(blast_cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
     stdout_stderr = pipe.communicate()
@@ -315,9 +265,6 @@ def disco_align(query_fpath, db_fpath, n_thr):
         print(stdout_stderr[1].decode('utf-8'))
         platf_depend_exit(pipe.returncode)
     # end if
-
-    sys.stdout.write('\r{} - Aligning...done\n'.format(getwt()))
-    sys.stdout.flush()
 
     return stdout_stderr[0].decode('utf-8')
 # end def disco_align
@@ -362,43 +309,76 @@ def make_outfpath(fq_fpath):
 # end def make_outfpath
 
 
-def fastq_records(fq_fpath):
-    # Function (generator) that "generates" fastq records from given file.
-    #
-    # :param fq_fpath: path to input fastq file;
-    # :type fq_fpath: str;
+def form_packet(fastq_file, packet_size, fmt_func):
+    """
+    Function reads lines from 'fastq_file' and composes a packet of 'packet_size' sequences.
 
-    file_type = int(fq_fpath.endswith('.gz'))
-    open_func = OPEN_FUNCS[file_type]
-    fmt_func = FORMATTING_FUNCS[file_type]
+    :param fastq_file: file instance from which to read;
+    :type fastq_file: _io.TextIOWrapper or gzip.File;
+    :param packet_size: number of sequences to retrive from file;
+    :type packet_size: int;
+    :param fmt_func: formating function from FORMMATING_FUNCS tuple;
+    """
 
-    cnt = 0
-    lines = list()
-    with open_func(fq_fpath) as fq_file:
+    packet = ""
+    eof = False
+    fq_packet = dict()
 
-        for line in fq_file:
+    for i in range(packet_size):
 
-            line = fmt_func(line)
+        read_id = fmt_func(fastq_file.readline())
 
-            if line == '':
-                continue
+        if read_id == "": # if eof is reached, leave now
+            eof = True
+            break
+        # end if
+
+        fq_packet[read_id] = {
+            'seq_id': read_id.partition(' ')[0][1:],
+            'seq': fmt_func(fastq_file.readline()),
+            'cmnt': fmt_func(fastq_file.readline()),
+            'qual': fmt_func(fastq_file.readline())
+        }
+    # end for
+
+    return fq_packet, eof
+# end def form_packet
+
+
+def fastq_packets(fq_fpath, packet_size):
+
+    how_to_open = OPEN_FUNCS[ fq_fpath.startswith('.gz') ]
+    fmt_func = FORMATTING_FUNCS[ fq_fpath.startswith('.gz') ]
+
+    with how_to_open(fq_fpath) as fastq_file:
+
+        # End of file
+        eof = False
+
+        while not eof:
+
+            fq_packet, eof = form_packet(fastq_file, packet_size, fmt_func)
+
+            if len(fq_packet) == 0:
+                return
             # end if
 
-            if cnt != 3:
-                lines.append(line)
-                cnt += 1
-            else:
-                cnt = 0
-                yield {
-                    'seq_id': lines[0][1:].partition(' ')[0],
-                    'seq': lines[1],
-                    'cmnt': lines[2],
-                    'qual': line
-                }
-                lines.clear()
-        # end for
+            yield fq_packet
+
+            if eof:
+                return
+            # end if
+        # end while
     # end with
-# end def fastq_records
+# end def fastq_packets
+
+
+def write_fastq2fasta(fq_packet, query_fpath):
+    with open(query_fpath, 'w') as query_file:
+        for fq_record in fq_packet.values():
+            query_file.write('>{}\n{}\n'.format(fq_record['seq_id'],fq_record['seq']))
+    # end with
+# end def
 
 
 def write_fastq_record(fq_record, outfile):
@@ -512,78 +492,6 @@ def get_aligned_spans(curr_alns):
 # end def get_aligned_spans
 
 
-def clean_and_shred(aln_df, fq_fpath):
-    # Function organizes analysis of dataframe of alignment data.
-    #
-    # :param aln_df: dataframe containing alignment data to be analysed;
-    # :type aln_df: pandas.DatFrame;
-    # :param fq_fpath: path to input fastq file;
-    # :type fq_fpath str;
-    #
-    # Returns path to output file.
-
-    # Get path to output file.
-    outfpath = make_outfpath(fq_fpath)
-
-    # Count reads and configure variables for printing status bar
-    nreads = sum(1 for _ in OPEN_FUNCS[int(fq_fpath.endswith('.gz'))](fq_fpath)) // 4
-    bar_len = int(os.get_terminal_size().columns * 0.50)
-    next_print_num = int(nreads * 0.01)
-    inc_num = next_print_num
-
-    print('{} - Start cleaning and shredding...'.format(getwt()))
-
-    sys.stdout.write('{} - [{}] 0/{}'.format(getwt(), ' '*bar_len, nreads))
-    sys.stdout.flush()
-
-    with open(outfpath, 'w') as outfile:
-
-        for i, fq_record in enumerate(fastq_records(fq_fpath)):
-
-            # Select rows containing alignments of current read
-            # curr_alns = aln_df[aln_df['qseqid'] == fq_record['seq_id']]
-            curr_alns = aln_df.query('qseqid == @fq_record["seq_id"]')
-
-            # Analyse alignments and get spans
-            aligned_spans = get_aligned_spans(curr_alns)
-
-            # Write spans
-            for aln_span in aligned_spans:
-
-                # Configure variables for output fastq record
-                qstart, qend = aln_span[0], aln_span[1]
-                curr_seq_id = '{}_{}-{}'.format(fq_record['seq_id'], qstart+1, qend) # write 1-based coordinates here
-                curr_seq = fq_record['seq'][qstart : qend]
-                curr_qual = fq_record['qual'][qstart : qend]
-
-                write_fastq_record({'seq_id':  curr_seq_id,
-                                    'seq'   :  curr_seq,
-                                    'cmnt'  :  fq_record['cmnt'],
-                                    'qual'  :  curr_qual},
-                                   outfile)
-            # end for
-
-            # Update status bar
-            if i > next_print_num:
-                 bar_len = int(os.get_terminal_size().columns * 0.50)
-                 done_ratio = i / nreads
-                 sys.stdout.write('\r{} - [{}>{}] {}/{} ({}%)'.format(getwt(),
-                    '='*(int(bar_len*done_ratio)-1),
-                     ' '*int(bar_len*(1-done_ratio)), i, nreads, int(done_ratio*100)) )
-                 sys.stdout.flush()
-                 next_print_num += inc_num
-             # end if
-        # end for
-    # end with
-
-    sys.stdout.write('\r{} - [{}] {}/{} (100%)\n'.format(getwt(),
-        '='*bar_len, nreads, nreads))
-    sys.stdout.flush()
-
-    return outfpath
-# end def clean_and_shred
-
-
 def rm_query_file(query_fpath):
     # Function removes temporary query file.
     #
@@ -599,31 +507,105 @@ def rm_query_file(query_fpath):
 # end rm_query_file
 
 
+def clean_and_shred(fq_fpath, db_fpath, n_thr, packet_size):
+    # Function organizes analysis of dataframe of alignment data.
+    #
+    # :param aln_df: dataframe containing alignment data to be analysed;
+    # :type aln_df: pandas.DatFrame;
+    # :param fq_fpath: path to input fastq file;
+    # :type fq_fpath str;
+    #
+    # Returns path to output file.
+
+    # Get path to output file.
+    outfpath = make_outfpath(fq_fpath)
+    query_fpath = 'query_{}.fasta'.format(os.getpid())
+
+    # Count reads and configure variables for printing status bar
+    nreads = sum(1 for _ in OPEN_FUNCS[int(fq_fpath.endswith('.gz'))](fq_fpath)) // 4
+    bar_len = int(os.get_terminal_size().columns * 0.40)
+    next_print_num = int(nreads * 0.01)
+    inc_num = next_print_num
+    i = 0
+
+    sys.stdout.write('{} - [{}] 0/{} (0%)'.format(getwt(), ' '*bar_len, nreads))
+    sys.stdout.flush()
+
+    with open(outfpath, 'w') as outfile:
+
+        for fq_packet in fastq_packets(fq_fpath, packet_size):
+
+            # Convert input fastq file to fastq format in order to pass the latter to blastn
+            write_fastq2fasta(fq_packet, query_fpath)
+            # Align and obtain dataframe containing data about alignments
+            aln_df = str2df(disco_align(query_fpath, db_fpath, n_thr))
+
+            for read_id, fq_record in fq_packet.items():
+                # Select rows containing alignments of current read
+                # curr_alns = aln_df[aln_df['qseqid'] == fq_record['seq_id']]
+                curr_alns = aln_df.query('qseqid == @fq_record["seq_id"]')
+                aligned_spans = get_aligned_spans(curr_alns)
+
+                # Write spans
+                for aln_span in aligned_spans:
+
+                    # Configure variables for output fastq record
+                    qstart, qend = aln_span[0], aln_span[1]
+                    curr_seq_id = '{}_{}-{}'.format(fq_record['seq_id'], qstart+1, qend) # write 1-based coordinates here
+                    curr_seq = fq_record['seq'][qstart : qend]
+                    curr_qual = fq_record['qual'][qstart : qend]
+
+                    write_fastq_record({'seq_id':  curr_seq_id,
+                                        'seq'   :  curr_seq,
+                                        'cmnt'  :  fq_record['cmnt'],
+                                        'qual'  :  curr_qual},
+                                       outfile)
+                # end for
+                i += 1
+
+                # Update status bar
+                if i > next_print_num:
+                     bar_len = int(os.get_terminal_size().columns * 0.40)
+                     done_ratio = i / nreads
+                     sys.stdout.write('\r{} - [{}>{}] {}/{} ({}%)'.format(getwt(),
+                        '='*(int(bar_len*done_ratio)-1),
+                         ' '*int(bar_len*(1-done_ratio)), i, nreads, int(done_ratio*100)))
+                     sys.stdout.flush()
+                     next_print_num += inc_num
+                 # end if
+            # end for
+        # end for
+    # end with
+
+    sys.stdout.write('\r{} - [{}] {}/{} (100%)\n'.format(getwt(),
+        '='*bar_len, nreads, nreads))
+    sys.stdout.flush()
+
+    # Remove temporary query file
+    rm_query_file(query_fpath)
+
+    return outfpath
+# end def clean_and_shred
+
+
 def main():
     # Handle command line arguments
-    fq_fpaths, db_fpath, n_thr = handle_cl_args()
+    fq_fpaths, db_fpath, n_thr, packet_size = handle_cl_args()
 
     print('{} - Start.'.format(getwt()))
 
     for fq_fpath in fq_fpaths:
         print('{} - Processing file `{}`'.format(getwt(), fq_fpath))
 
-        # Convert input fastq file to fastq format in order to pass the latter to blastn
-        query_fpath = fastq2fasta(fq_fpath)
-
-        # Align and obtain dataframe containing data about alignments
-        aln_df = str2df(disco_align(query_fpath, db_fpath, n_thr))
-
-        # Analyse alignments, configure spans and write them to output file in fastq format
-        outfpath = clean_and_shred(aln_df, fq_fpath)
-
-        # Remove temporary query file
-        rm_query_file(query_fpath)
+        # Run cleaning
+        outfpath = clean_and_shred(fq_fpath, db_fpath, n_thr, packet_size)
 
         print('{} - File `{}` is processed.'.format(getwt(), fq_fpath))
         print('Output file: `{}`'.format(outfpath))
         print('-------')
     # end for
+
+    print('{} - Completed.'.format(getwt()))
 # end def main
 
 
