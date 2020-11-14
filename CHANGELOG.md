@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-11-14 edition
+
+- kromsatel now works 2 times faster.
+
+### Version changes:
+
+- kromsatel: `1.2.c -> 1.2.d`
+
 ## 2020-11-13 edition
 
 - kromsatel: performance improved.

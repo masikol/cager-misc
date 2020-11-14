@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__version__ = "1.2.c"
+__version__ = "1.2.d"
 # Year, month, day
-__last_update_date__ = "2020-11-13"
+__last_update_date__ = "2020-11-14"
 
 # |===== Check python interpreter version. =====|
 
@@ -212,18 +212,7 @@ def handle_cl_args():
 # end def handle_cl_args
 
 
-def disco_align(query_fpath, db_fpath, n_thr):
-    # Function alignes reads against fragments using Discontiguous Megablast.
-    #
-    # :param query_fpath: path to fasta query file;
-    # :type query_fpath: str;
-    # :param db_fpath: path to database containing target fragments;
-    # :type db_fpath: str;
-    # :param n_thr: number of threads to launch;
-    # :type n_thr: int;
-    #
-    # Returns tabular string if format "outfmt 6" returned by blastn.
-
+def check_blastn():
     # Check if 'blast+' tookit is installed
     pathdirs = os.environ['PATH'].split(os.pathsep)
     utility = 'blastn'
@@ -240,6 +229,21 @@ def disco_align(query_fpath, db_fpath, n_thr):
 -- make sure that this program is added to PATH)''')
         platf_depend_exit(1)
     # end if
+# end def check_blastn
+
+
+def configure_blastn_cmd(query_fpath, db_fpath, n_thr):
+    # Function creates command for launching blastn.
+    # This command will be always the same, so let's create it once.
+    #
+    # :param query_fpath: path to query fasta file;
+    # :type query_fpath: str;
+    # :param db_fpath: path to database;
+    # :type db_fpath: str;
+    # :param n_thr: number of threads to launch;
+    # :type n_thr: int;
+    #
+    # Returns command which will launch aligning with blastn (str).
 
     outfmt = '6 qseqid sseqid sstrand length qlen slen qstart qend sstart send'
 
@@ -255,6 +259,18 @@ def disco_align(query_fpath, db_fpath, n_thr):
                          n_thr,
                          outfmt
     )
+
+    return blast_cmd
+# end def configure_blastn_cmd
+
+
+def disco_align(blast_cmd):
+    # Function alignes reads against fragments using Discontiguous Megablast.
+    #
+    # :param blast_cmd: command to execute;
+    # :type blast_cmd: str;
+    #
+    # Returns tabular string if format "outfmt 6" returned by blastn.
 
     # Launch blastn
     pipe = sp.Popen(blast_cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -347,8 +363,8 @@ def form_packet(fastq_file, packet_size, fmt_func):
 
 def fastq_packets(fq_fpath, packet_size):
 
-    how_to_open = OPEN_FUNCS[ fq_fpath.startswith('.gz') ]
-    fmt_func = FORMATTING_FUNCS[ fq_fpath.startswith('.gz') ]
+    how_to_open = OPEN_FUNCS[ fq_fpath.endswith('.gz') ]
+    fmt_func = FORMATTING_FUNCS[ fq_fpath.endswith('.gz') ]
 
     with how_to_open(fq_fpath) as fastq_file:
 
@@ -374,6 +390,14 @@ def fastq_packets(fq_fpath, packet_size):
 
 
 def write_fastq2fasta(fq_packet, query_fpath):
+    # Function writes fastq-formatted packet to fasta file.
+    #
+    # :param fq_packet: dictionary of fastq-records;
+    # :type fq_packet: dict<str: dict<str: str>>;
+    # :param query_fpath: path to query fasta file;
+    # :type query_fpath: str;
+    #
+    # 
     with open(query_fpath, 'w') as query_file:
         for fq_record in fq_packet.values():
             query_file.write('>{}\n{}\n'.format(fq_record['seq_id'],fq_record['seq']))
@@ -450,12 +474,16 @@ def get_aligned_spans(curr_alns):
     # end if
 
     # Add columns indicating if alignments "touch" 5'- and 3'-ends of subjects
+    curr_alns.insert(loc=curr_alns.shape[1], column='touch_start', value=np.repeat(None, curr_alns.shape[0]))
+    curr_alns.insert(loc=curr_alns.shape[1], column='touch_end', value=np.repeat(None, curr_alns.shape[0]))
+
+    # Fill these columns
     curr_alns = curr_alns.apply(set_touch_start, axis=1)
     curr_alns = curr_alns.apply(set_touch_end, axis=1)
 
     # Extract "touching" alignments
-    full_span_alns = curr_alns.query('touch_start & touch_end') # from 5' to 3'
-    one_side_alns = curr_alns.query('@operator.xor(touch_start, touch_end)') # from 5' of from 3' (with a break somewhere in between)
+    full_span_alns = curr_alns[(curr_alns['touch_start']) & (curr_alns['touch_end'])] # from 5' to 3'
+    one_side_alns = curr_alns[operator.xor(curr_alns['touch_start'], curr_alns['touch_end'])] # from 5' of from 3' (with a break somewhere in between)
 
     # List of result spans
     aligned_spans = list()
@@ -521,6 +549,8 @@ def clean_and_shred(fq_fpath, db_fpath, n_thr, packet_size):
     outfpath = make_outfpath(fq_fpath)
     query_fpath = 'query_{}.fasta'.format(os.getpid())
 
+    blast_cmd = configure_blastn_cmd(query_fpath, db_fpath, n_thr)
+
     # Count reads and configure variables for printing status bar
     nreads = sum(1 for _ in OPEN_FUNCS[int(fq_fpath.endswith('.gz'))](fq_fpath)) // 4
     bar_len = int(os.get_terminal_size().columns * 0.40)
@@ -538,12 +568,11 @@ def clean_and_shred(fq_fpath, db_fpath, n_thr, packet_size):
             # Convert input fastq file to fastq format in order to pass the latter to blastn
             write_fastq2fasta(fq_packet, query_fpath)
             # Align and obtain dataframe containing data about alignments
-            aln_df = str2df(disco_align(query_fpath, db_fpath, n_thr))
+            aln_df = str2df(disco_align(blast_cmd))
 
             for read_id, fq_record in fq_packet.items():
                 # Select rows containing alignments of current read
-                # curr_alns = aln_df[aln_df['qseqid'] == fq_record['seq_id']]
-                curr_alns = aln_df.query('qseqid == @fq_record["seq_id"]')
+                curr_alns = aln_df[aln_df['qseqid'] == fq_record['seq_id']]
                 aligned_spans = get_aligned_spans(curr_alns)
 
                 # Write spans
@@ -568,7 +597,7 @@ def clean_and_shred(fq_fpath, db_fpath, n_thr, packet_size):
                      bar_len = int(os.get_terminal_size().columns * 0.40)
                      done_ratio = i / nreads
                      sys.stdout.write('\r{} - [{}>{}] {}/{} ({}%)'.format(getwt(),
-                        '='*(int(bar_len*done_ratio)-1),
+                        '='*int(bar_len*done_ratio),
                          ' '*int(bar_len*(1-done_ratio)), i, nreads, int(done_ratio*100)))
                      sys.stdout.flush()
                      next_print_num += inc_num
@@ -591,6 +620,9 @@ def clean_and_shred(fq_fpath, db_fpath, n_thr, packet_size):
 def main():
     # Handle command line arguments
     fq_fpaths, db_fpath, n_thr, packet_size = handle_cl_args()
+
+    # Check if blastn is installed
+    check_blastn()
 
     print('{} - Start.'.format(getwt()))
 
