@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-12-02 edition
+
+- kromsatel: output files naming changed: now "cleaned" is suffix, not prefix.
+
+### Version changes:
+
+- kromsatel: `1.2.d -> 1.2.e`
+
 ## 2020-11-14 edition
 
 - kromsatel now works 2 times faster.

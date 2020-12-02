@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__version__ = "1.2.d"
+__version__ = "1.2.e"
 # Year, month, day
-__last_update_date__ = "2020-11-14"
+__last_update_date__ = "2020-12-02"
 
 # |===== Check python interpreter version. =====|
 
@@ -277,7 +277,7 @@ def disco_align(blast_cmd):
     stdout_stderr = pipe.communicate()
 
     if pipe.returncode != 0:
-        print('\nError while aligning a sequence against local database')
+        print('\nError while aligning a sequence against amplion database')
         print(stdout_stderr[1].decode('utf-8'))
         platf_depend_exit(pipe.returncode)
     # end if
@@ -318,9 +318,19 @@ def make_outfpath(fq_fpath):
     #
     # Returns path to output file (str).
 
+    try:
+        extention = re.search(r'(\.f(ast)?q(\.gz))', fq_fpath).group(1)
+    except AttributeError as err:
+        print( str(err) )
+        print('Error -3. Please, contact the developer.')
+        platf_depend_exit(-3)
+    # end try
+
+    name_with_no_ext = fq_fpath.replace(extention, '')
+
     return os.path.join(
         os.path.dirname(fq_fpath),
-        'cleaned_{}'.format(os.path.basename(fq_fpath).replace('.gz', ''))
+        '{}_cleaned.fastq'.format(name_with_no_ext)
     )
 # end def make_outfpath
 
