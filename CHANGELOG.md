@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2020-12-03 edition
+
+- combinator-FQ: `-o` option addded.
+
+### Version changes:
+
+- kromsatel: `1.3.d -> 1.3.e`
+
 ## 2020-12-02 edition
 
 - kromsatel: output files naming changed: now "cleaned" is suffix, not prefix.

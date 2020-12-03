@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.3.d"
+__version__ = "1.3.e"
 # Year, month, day
-__last_update_date__ = "2020-10-08"
+__last_update_date__ = "2020-12-03"
 
 # Check python interpreter version
 
@@ -67,6 +67,8 @@ https://github.com/masikol/cager-misc/wiki/combinator-FQ""")
     print("""  -k (--k-mer-len): exact k (in b.p.).
     If specified, '-i' and '-a' options are ignored.
     Value: integer > 0; Option is disabled by default;\n""")
+    print("""  -o (--outdir): output directory.
+    Default value: `combinator-result`""")
     print("""  -p (--prefix): prefix of output files.
     By default they are named according to name of input file.
     Example: input -- 'contigs.fasta',
@@ -104,8 +106,8 @@ if "-v" in sys.argv[1:] or "--version" in sys.argv[1:]:
 import getopt
 
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "hvp:k:i:a:",
-        ["help", "version", "prefix=", "k-mer-len=", "mink=", "maxk="])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "hvp:k:i:a:o:",
+        ["help", "version", "prefix=", "k-mer-len=", "mink=", "maxk=", "outdir="])
 except getopt.GetoptError as gerr:
     print( str(gerr) )
     platf_depend_exit(2)
@@ -162,6 +164,7 @@ else:
 
 
 prefix = re.search(r"(.+)\.(m)?f(ast)?a(\.gz)?", os.path.basename(contigs_fpath)).group(1)
+outdpath = "combinator-result"
 mink = 21
 maxk = 127
 
@@ -183,6 +186,9 @@ for opt, arg in opts:
         else:
             mink, maxk = arg, arg # mink = k and maxk = k
         # end try
+
+    elif opt in ("-o", "--outdir"):
+        outdpath = arg
 
     elif opt in ("-i", "--mink"):
 
@@ -229,6 +235,16 @@ if mink > maxk:
         platf_depend_exit(1)
     # end if
 # end if
+
+# Create output directory
+try:
+    if not os.path.isdir(outdpath):
+        os.makedirs(outdpath)
+    # end if
+except OSError as err:
+    print("Unable to create output directory `{}`".format(outdpath))
+    print( str(err) )
+# end try
 
 
 # Dictionary maps complementary bases according to IUPAC:
@@ -665,7 +681,10 @@ for i in range(len(contigs_names)):
 
 # === Form result table in file "combinator_output_FQ.tsv" ===
 
-adj_cont_fpath = "{}{}combinator_adjacent_contigs.tsv".format(prefix, '' if prefix == '' else '_')
+adj_cont_fpath = os.path.join(
+    outdpath,
+    "{}{}combinator_adjacent_contigs.tsv".format(prefix, '' if prefix == '' else '_')
+)
 
 print("\n\nWriting adjacency table to '{}'".format(adj_cont_fpath))
 
@@ -722,13 +741,15 @@ print("Done\n")
 # Calculate actual LQ-coefficient
 LQ = round(100 - (rev_LQ * 100) / (N * 2), 2)
 
-full_log_fpath = "{}{}combinator_full_matching_log.txt".format(prefix, '' if prefix == '' else '_')
+full_log_fpath = os.path.join(
+    outdpath,
+    "{}{}combinator_full_matching_log.txt".format(prefix, '' if prefix == '' else '_')
+)
 
 print("Writing full matching log to '{}'".format(full_log_fpath))
 
 # Sort log by name of contig
 full_log = '\n'.join(sorted(full_log.splitlines(), key = lambda x: int(x.partition(":")[0].partition('_')[2])))
-
 
 with open(full_log_fpath, 'w') as outfile:
     outfile.write(full_log) # write full log separate file
@@ -785,7 +806,10 @@ for XmY, YmX, XmX in zip((SmE, EmS), (EmS, SmE), (SmS, EmE)):
 # end for
 
 
-summary_fpath = "{}{}combinator_summary_FQ.txt".format(prefix, '' if prefix == '' else '_')
+summary_fpath = os.path.join(
+    outdpath,
+    "{}{}combinator_summary_FQ.txt".format(prefix, '' if prefix == '' else '_')
+)
 
 print("\n\nWriting summary to '{}'\n".format(summary_fpath))
 
