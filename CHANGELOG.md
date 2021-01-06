@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2021-01-06 edition
+
+- kromsatel: fixed bug that would cause kromsatel to prefer minor amplicons over major ones.
+
+### Version changes:
+
+- kromsatel: `1.2.e -> 1.3.a`
+
 ## 2020-12-03 edition
 
 - combinator-FQ: `-o` option addded.

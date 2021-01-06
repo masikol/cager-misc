@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__version__ = "1.2.e"
+__version__ = "1.3.a"
 # Year, month, day
-__last_update_date__ = "2020-12-02"
+__last_update_date__ = "2021-01-06"
 
 # |===== Check python interpreter version. =====|
 
@@ -110,7 +110,7 @@ def handle_cl_args():
     # Get arguments
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], 'hvd:t:p:', ['help', 'version',
-                                                                'db=', 'threads=' 'packet-size=']
+                                                                'db=', 'threads=', 'packet-size=']
         )
     except getopt.GetoptError as opt_err:
         print( str(opt_err) )
@@ -166,7 +166,7 @@ def handle_cl_args():
                     raise ValueError
                 # end if
             except ValueError:
-                print(err_fmt("packet_size (-p option) must be positive integer number"))
+                print("Error: packet_size (-p option) must be positive integer number")
                 platf_depend_exit(1)
             # end try
 
@@ -319,7 +319,7 @@ def make_outfpath(fq_fpath):
     # Returns path to output file (str).
 
     try:
-        extention = re.search(r'(\.f(ast)?q(\.gz))', fq_fpath).group(1)
+        extention = re.search(r'(\.f(ast)?q(\.gz)?)', fq_fpath).group(1)
     except AttributeError as err:
         print( str(err) )
         print('Error -3. Please, contact the developer.')
@@ -346,11 +346,10 @@ def form_packet(fastq_file, packet_size, fmt_func):
     :param fmt_func: formating function from FORMMATING_FUNCS tuple;
     """
 
-    packet = ""
     eof = False
     fq_packet = dict()
 
-    for i in range(packet_size):
+    for _ in range(packet_size):
 
         read_id = fmt_func(fastq_file.readline())
 
@@ -406,8 +405,7 @@ def write_fastq2fasta(fq_packet, query_fpath):
     # :type fq_packet: dict<str: dict<str: str>>;
     # :param query_fpath: path to query fasta file;
     # :type query_fpath: str;
-    #
-    # 
+
     with open(query_fpath, 'w') as query_file:
         for fq_record in fq_packet.values():
             query_file.write('>{}\n{}\n'.format(fq_record['seq_id'],fq_record['seq']))
@@ -470,6 +468,22 @@ def set_touch_end(row):
 # end def get_touch_start
 
 
+def set_major(row):
+    # Function to be used with pandas.DataFrame.apply function.
+    # It adds a column indicating if `sseqid` of the alignment
+    #   in a particular row is major fragment, i.e. it starts with 'A'.
+    #
+    # :param row: row of dataframe to which this function if applied;
+    # :type row: pandas.Series;
+
+    if row['sseqid'][0] == 'A':
+        row['major'] = True
+    # end if
+
+    return row
+# end def get_touch_start
+
+
 def get_aligned_spans(curr_alns):
     # Function analyses obtained alignments and find "spans" -- subsequences
     #   into which input read should be "shredded".
@@ -484,32 +498,39 @@ def get_aligned_spans(curr_alns):
     # end if
 
     # Add columns indicating if alignments "touch" 5'- and 3'-ends of subjects
+    # And a column indicating if subject sequence is a major fragment
     curr_alns.insert(loc=curr_alns.shape[1], column='touch_start', value=np.repeat(None, curr_alns.shape[0]))
     curr_alns.insert(loc=curr_alns.shape[1], column='touch_end', value=np.repeat(None, curr_alns.shape[0]))
+    curr_alns.insert(loc=curr_alns.shape[1], column='major', value=np.repeat(False, curr_alns.shape[0]))
 
     # Fill these columns
     curr_alns = curr_alns.apply(set_touch_start, axis=1)
     curr_alns = curr_alns.apply(set_touch_end, axis=1)
+    curr_alns = curr_alns.apply(set_major, axis=1)
 
     # Extract "touching" alignments
     full_span_alns = curr_alns[(curr_alns['touch_start']) & (curr_alns['touch_end'])] # from 5' to 3'
     one_side_alns = curr_alns[operator.xor(curr_alns['touch_start'], curr_alns['touch_end'])] # from 5' of from 3' (with a break somewhere in between)
 
+    chain_of_alns = (
+        full_span_alns[full_span_alns['major'] == True], # firstly check major full alignments
+        one_side_alns[one_side_alns['major'] == True], # then major but not full
+        full_span_alns[full_span_alns['major'] == False], # then minor full
+        one_side_alns[one_side_alns['major'] == False], # and finally minor but not full
+    )
+
+    del full_span_alns
+    del one_side_alns
+
     # List of result spans
     aligned_spans = list()
-
-    # Get major fragment first
-    # Their accessions start with 'A' and will appear firstly in `full_span_alns`
-    full_span_alns = full_span_alns.sort_values(by='sseqid', ascending=True)
-    # full_span_alns.sort_values(by='sseqid', ascending=True, inplace=True)
 
     # We will use this array to make sure that one span
     #   is included in result ("shredded") reads multiple times.
     cov_array = np.zeros(curr_alns.iloc[0,:]['qlen'], dtype=np.uint8)
 
     # Find spans
-    # Firsly check full_span_alns, since they are major product and should preceed
-    for aln_collenstion in (full_span_alns, one_side_alns):
+    for aln_collenstion in chain_of_alns:
 
         for i in range(aln_collenstion.shape[0]):
 
@@ -518,7 +539,7 @@ def get_aligned_spans(curr_alns):
             np.add.at(buff_cov_array, range(aln['qstart']-1, aln['qend']), 1) # add 1-s to find overlaps
 
             # If it is a 2 (number two) somewhere, we have overlap and do not need this span.
-            # if no 2 emerger, keep this span and add it to `aligned_spans`
+            # if no 2 emerged, keep this span and add it to `aligned_spans`
             if not any(buff_cov_array > 1):
                 np.add.at(cov_array, range(aln['qstart']-1, aln['qend']), 1) # update cov_array
                 aligned_spans.append( (aln['qstart']-1, aln['qend']) )
@@ -557,7 +578,11 @@ def clean_and_shred(fq_fpath, db_fpath, n_thr, packet_size):
 
     # Get path to output file.
     outfpath = make_outfpath(fq_fpath)
-    query_fpath = 'query_{}.fasta'.format(os.getpid())
+    if sys.platform.startswith('win'):
+        query_fpath = 'kromsatel_query_{}.fasta'.format(os.getpid())
+    else:
+        query_fpath = '/tmp/kromsatel_query_{}.fasta'.format(os.getpid())
+    # end if
 
     blast_cmd = configure_blastn_cmd(query_fpath, db_fpath, n_thr)
 
@@ -575,12 +600,12 @@ def clean_and_shred(fq_fpath, db_fpath, n_thr, packet_size):
 
         for fq_packet in fastq_packets(fq_fpath, packet_size):
 
-            # Convert input fastq file to fastq format in order to pass the latter to blastn
+            # Convert input fastq file to fasta format in order to pass the latter to blastn
             write_fastq2fasta(fq_packet, query_fpath)
             # Align and obtain dataframe containing data about alignments
             aln_df = str2df(disco_align(blast_cmd))
 
-            for read_id, fq_record in fq_packet.items():
+            for _, fq_record in fq_packet.items():
                 # Select rows containing alignments of current read
                 curr_alns = aln_df[aln_df['qseqid'] == fq_record['seq_id']]
                 aligned_spans = get_aligned_spans(curr_alns)
@@ -604,13 +629,13 @@ def clean_and_shred(fq_fpath, db_fpath, n_thr, packet_size):
 
                 # Update status bar
                 if i > next_print_num:
-                     bar_len = int(os.get_terminal_size().columns * 0.40)
-                     done_ratio = i / nreads
-                     sys.stdout.write('\r{} - [{}>{}] {}/{} ({}%)'.format(getwt(),
+                    bar_len = int(os.get_terminal_size().columns * 0.40)
+                    done_ratio = i / nreads
+                    sys.stdout.write('\r{} - [{}>{}] {}/{} ({}%)'.format(getwt(),
                         '='*int(bar_len*done_ratio),
-                         ' '*int(bar_len*(1-done_ratio)), i, nreads, int(done_ratio*100)))
-                     sys.stdout.flush()
-                     next_print_num += inc_num
+                        ' '*int(bar_len*(1-done_ratio)), i, nreads, int(done_ratio*100)))
+                    sys.stdout.flush()
+                    next_print_num += inc_num
                  # end if
             # end for
         # end for
