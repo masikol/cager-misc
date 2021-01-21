@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2021-01-21 edition
+
+- combinator-FQ: bug fix (combinator used to ternimate in the end if it couldn't extract ordinal number of contig from contig's name);
+
+### Version changes:
+
+- combinator-FQ: `1.3.e -> 1.3.f`
+
 ## 2021-01-06 edition
 
 - kromsatel: fixed bug that would cause kromsatel to prefer minor amplicons over major ones.

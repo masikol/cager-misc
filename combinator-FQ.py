@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.3.e"
+__version__ = "1.3.f"
 # Year, month, day
-__last_update_date__ = "2020-12-03"
+__last_update_date__ = "2021-01-21"
 
 # Check python interpreter version
 
@@ -749,7 +749,12 @@ full_log_fpath = os.path.join(
 print("Writing full matching log to '{}'".format(full_log_fpath))
 
 # Sort log by name of contig
-full_log = '\n'.join(sorted(full_log.splitlines(), key = lambda x: int(x.partition(":")[0].partition('_')[2])))
+try:
+    full_log = '\n'.join(sorted(full_log.splitlines(), key = lambda x: int(x.partition(":")[0].partition('_')[2])))
+except ValueError:
+    # if we fail extract proper number from sequences, just sort lexicografically
+    full_log = '\n'.join(sorted(full_log.splitlines()))
+# end try
 
 with open(full_log_fpath, 'w') as outfile:
     outfile.write(full_log) # write full log separate file
