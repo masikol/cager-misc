@@ -17,4 +17,4 @@ List of tools with links to manuals:
 - [dedupl-fastq](https://www.github.com/masikol/cager-misc/wiki/dedupl-fastq): the script is designed for deduplication of fastq files;
 - [pub](https://www.github.com/masikol/cager-misc/wiki/pub): a script for automatic picking up sequencing barcodes;
 - [sum-up-snv](https://www.github.com/masikol/cager-misc/wiki/sum-up-snv): a script for summarizing variation ant single specified position in SAM/BAM file;
-- [kromsatel](https://www.github.com/masikol/cager-misc/wiki/kromsatel): a script for preprocessing raw reads obtained using [ARTIC's protocol](https://artic.network/ncov-2019) for sequencing SARS-CoV-2 genome;
+- kromsatel: this script is now moved to separate repository: [https://github.com/masikol/kromsatel](https://github.com/masikol/kromsatel);
