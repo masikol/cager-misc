@@ -22,7 +22,7 @@
 
 ### Version changes:
 
-- kromsatel: `1.3.d -> 1.3.e`
+- combinator-FQ: `1.3.d -> 1.3.e`
 
 ## 2020-12-02 edition
 
@@ -54,7 +54,7 @@
 
 ## 2020-10-23 edition
 
-- pub: checked algoeithm of finding color ballanced set of barcodes: now pub reclusters all barcodes except of the one having minimal silhouette score.
+- pub: checked algorithm of finding color ballanced set of barcodes: now pub reclusters all barcodes except of the one having minimal silhouette score.
 
 ### Version changes:
 
