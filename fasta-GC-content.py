@@ -9,9 +9,9 @@
 # 2. Min, max and mean coverage (if SPAdes assembly file is processed).
 #---------------------------------------------------------------------------
 
-__version__ = "1.1.a"
+__version__ = "1.1.b"
 # Year, month, day
-__last_update_date__ = "2020-04-13"
+__last_update_date__ = "2021-03-10"
 
 # Check python interpreter version
 
@@ -184,32 +184,14 @@ for fpath in fa_fpaths:
         outfile.write('\t'.join( ("Sequence name",
             "G",
             "C",
-            "S (G or C)",
+            "S (degenerate)",
             "GC (%)",
-            "Length (b.p.)") ) +
+            "Length (b.p.)",
+            "Coverage") ) +
         '\n')
 
         # Calculate GC-content
         for (i, seq), head in zip(enumerate(seqs), heads):
-
-
-            g_count = seq.upper().count('G')
-            c_count = seq.upper().count('C')
-            # According to IUPAC, S is G or C
-            s_count = seq.upper().count("S")
-
-            gc_content = round( (g_count + c_count + s_count) / len(seq) * 100, 2 )
-
-            outfile.write('\t'.join( (head[1:],
-                str(g_count),
-                str(c_count),
-                str(s_count),
-                str(gc_content),
-                str(len(seq))) ) +
-            '\n')
-
-            # Calculations for summary
-            totalLength += len(seq)
 
             # Check if we process SPAdes's assembly
             spades = True
@@ -226,6 +208,25 @@ for fpath in fa_fpaths:
                 min_cov = min(min_cov, float(cov))
                 max_cov = max(max_cov, float(cov))
             # end if
+
+            g_count = seq.upper().count('G')
+            c_count = seq.upper().count('C')
+            # According to IUPAC, S is G or C
+            s_count = seq.upper().count("S")
+
+            gc_content = round( (g_count + c_count + s_count) / len(seq) * 100, 2 )
+
+            outfile.write('\t'.join( (head[1:],
+                str(g_count),
+                str(c_count),
+                str(s_count),
+                str(gc_content),
+                str(len(seq)),
+                str(cov))) +
+            '\n')
+
+            # Calculations for summary
+            totalLength += len(seq)
         # end for
 
         # Separate summary from table body

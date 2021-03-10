@@ -2,6 +2,15 @@
 
 ## 2021-01-21 edition
 
+- fasta-GC-content: output files now contains "Coverage" column.
+- fasta-GC-content: renames column "S (G or C)" to "S (degenerate)".
+
+### Version changes:
+
+- fasta-GC-content: `1.1.a -> 1.1.b`
+
+## 2021-01-21 edition
+
 - combinator-FQ: bug fix (combinator used to ternimate in the end if it couldn't extract ordinal number of contig from contig's name);
 
 ### Version changes:
