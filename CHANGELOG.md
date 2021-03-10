@@ -7,7 +7,7 @@
 
 ### Version changes:
 
-- fasta-GC-content: `1.1.a -> 1.1.b`
+- fasta-GC-content: `1.1.a -> 1.1.b -> 1.1.c`
 
 ## 2021-01-21 edition
 

@@ -9,7 +9,7 @@
 # 2. Min, max and mean coverage (if SPAdes assembly file is processed).
 #---------------------------------------------------------------------------
 
-__version__ = "1.1.b"
+__version__ = "1.1.c"
 # Year, month, day
 __last_update_date__ = "2021-03-10"
 
@@ -193,6 +193,8 @@ for fpath in fa_fpaths:
         # Calculate GC-content
         for (i, seq), head in zip(enumerate(seqs), heads):
 
+            cov = None
+
             # Check if we process SPAdes's assembly
             spades = True
             head_split = head.split('_')
@@ -222,7 +224,7 @@ for fpath in fa_fpaths:
                 str(s_count),
                 str(gc_content),
                 str(len(seq)),
-                str(cov))) +
+                '-' if cov is None else str(cov))) +
             '\n')
 
             # Calculations for summary
