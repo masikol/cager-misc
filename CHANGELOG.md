@@ -1,5 +1,9 @@
 # cager-misc changelog
 
+## 2021-03-26
+
+Moved combinator-FQ to the separate repository: [https://github.com/masikol/combinator-FQ](https://github.com/masikol/combinator-FQ).
+
 ## 2021-01-21 edition
 
 - fasta-GC-content: output files now contains "Coverage" column.
