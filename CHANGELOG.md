@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2021-04-16
+
+seqator now takes input files from directory `./contigs/DNA Files` if directory `./contigs` contains no "SPAdes-like" `.dna` files.
+
+### Version changes:
+
+- seqator: `1.0.a -> 1.1.a`
+
 ## 2021-03-26
 
 Moved combinator-FQ to the separate repository: [https://github.com/masikol/combinator-FQ](https://github.com/masikol/combinator-FQ).
