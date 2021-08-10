@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 
 import sys
 
@@ -13,11 +13,11 @@ if sys.version_info.major < 3:
     sys.exit(1)
 # end if
 
-__version__ = "1.1.b"
-__last_update_date__ = "2020-04-13"
+__version__ = "1.2.a"
+__last_update_date__ = "2021-08-10"
 
 
-def platf_depend_exit(exit_code):
+def platf_depend_exit(exit_code=0):
     """
     Function asks to press ENTER press on Windows
         and exits after that.
@@ -46,6 +46,8 @@ This script finds N most frequently occuring subsequences
     the most frequently occuring subsequence in;""")
     print("""  -N (--num-top-occur) -- number of top the highest frequencies to show in output.
     Default value is 1 (i.e. show only the most frequently occuring subsequences);""")
+    print("""  --both-strands -- count subsequences on both strands
+    (default behaviour is to count only subsequences on positive strand).""")
     print("Example:")
     print("  ./most-freq-subseq.py -l 16 -s my_favourite_genome.fasta.gz -N 3")
 # end def print_help
@@ -63,20 +65,31 @@ if "-v" in sys.argv[1:] or "--version" in sys.argv[1:]:
 # end if
 
 import os
-from re import search as re_search
+import re
 from getopt import gnu_getopt, GetoptError
 
 try:
-    opts, args = gnu_getopt(sys.argv[1:], "hl:s:N:", ["help", "query-length", "subject", "num-top-occur"])
+    opts, args = gnu_getopt(
+        sys.argv[1:],
+        "hl:s:N:",
+        [
+            "help",
+            "query-length",
+            "subject",
+            "num-top-occur",
+            "both-strands"
+        ]
+    )
 except GetoptError as gerr:
     print( str(gerr) )
     platf_depend_exit(2)
 # end try
 
-is_fasta = lambda file: False if re_search(r"\.fa(sta)?(\.gz)?$", file) is None else True
+is_fasta = lambda file: not re.search(r"\.fa(sta)?(\.gz)?$", file) is None
 query_len = None
 sbjct_lst = list()
 num_occs_print = 1
+both_strands = False
 
 for opt, arg in opts:
 
@@ -95,11 +108,11 @@ for opt, arg in opts:
     elif opt in ("-s", "--subject"):
 
         if not os.path.exists(arg):
-            print("\aFile '{}' does not exist!".format(os.path.abspath(arg)))
+            print("\aFile `{}` does not exist!".format(os.path.abspath(arg)))
             platf_depend_exit(1)
         # end if
         if not is_fasta(arg):
-            print("\aFile '{}' is not a FASTA file!".format(os.path.abspath(arg)))
+            print("\aFile `{}` is not a FASTA file!".format(os.path.abspath(arg)))
             platf_depend_exit(1)
         # end if
         sbjct_lst.append( os.path.abspath(arg) )
@@ -110,12 +123,15 @@ for opt, arg in opts:
             if num_occs_print <= 0:
                 raise ValueError
             # end if
-        except:
+        except ValueError:
             print("""\a\nNumber of top-most-frequently-occuring subsequences
   must be positive integer number.""")
             print("Your value: '{}'".format(arg))
             platf_depend_exit(1)
         # end try
+
+    elif opt == "--both-strands":
+        both_strands = True
     # end if
 # end for
 
@@ -129,7 +145,7 @@ if len(sbjct_lst) == 0:
 else:
     print("\nFollowing files will be processed:")
     for i, fpath in enumerate(sbjct_lst):
-        print(" {}. '{}'".format(i+1, fpath))
+        print(" {}. `{}`".format(i+1, fpath))
     print('-' * 15 + '\n')
 # end if
 
@@ -153,57 +169,89 @@ if query_len is None:
     print()
 # end if
 
-from gzip import open as open_as_gzip
-is_gzipped = lambda f: True if f.endswith(".gz") else False
 
-OPEN_FUNCS = (open, open_as_gzip)
+import gzip
+from functools import partial
+is_gzipped = lambda f: f.endswith(".gz")
 
-# Data from plain text and gzipped should be parsed in different way,
-#   because data from .gz is read as 'bytes', not 'str'.
-FORMATTING_FUNCS = (
-    lambda line: line.strip(),   # format text line
-    lambda line: line.decode("utf-8").strip()  # format gzipped line
+OPEN_FUNCS = (
+    partial(open,      mode='rt'),
+    partial(gzip.open, mode='rt')
 )
 
-print(" - Length of subsequence to search: {};".format(query_len))
-print(" - Number of top-the-highest frequencies to show in output: {};\n".format(num_occs_print))
 
-def kernel(sequence, query_len, num_occs_print, outfile):
+# Define the samt function differently
+#  depending on flag `--both-strands`.
+# Let's do it in order not to check this flag at every fricking iteration
+if both_strands:
 
-    sequence = sequence.upper()   #simplification
+    def count_occurences(sequence, query_len):
+        # Function counts occurences only on both strands
 
-    """
-    subseq_dict (dictionary of subsequences) has the following format:
-    {subsequence: occurrence},
-    where: 'subsequence' if of 'str' type,
-           'occurrence' is of 'int' type
-    """
-    subseq_dict = dict()
+        # In accordance with IUPAC:
+        # https://www.bioinformatics.org/sms/iupac.html
+        complement_dict = {
+            'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G',
+            'R': 'Y', 'Y': 'R', 'S': 'S', 'W': 'W',
+            'K': 'M', 'M': 'K', 'B': 'V', 'D': 'H',
+            'H': 'D', 'V': 'B', 'U': 'A', 'N': 'N'
+        }
 
-    # In accordance with IUPAC:
-    # https://www.bioinformatics.org/sms/iupac.html
-    complement_dict = {
-        'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G',
-        'R': 'Y', 'Y': 'R', 'S': 'S', 'W': 'W',
-        'K': 'M', 'M': 'K', 'B': 'V', 'D': 'H',
-        'H': 'D', 'V': 'B', 'U': 'A', 'N': 'N'
-    }
-    rc = lambda seq: "".join((complement_dict[nucl] for nucl in reversed(seq)))
+        subseq_dict = dict()
 
-    stop = len(sequence) - query_len
-    for left in range(stop+1):
+        rc = lambda seq: "".join((complement_dict[nucl] for nucl in reversed(seq)))
 
-        curr_seq = sequence[left: left + query_len]
+        stop = len(sequence) - query_len
 
-        for subseq in (curr_seq, rc(curr_seq)):
+        for left in range(stop+1):
 
+            curr_seq = sequence[left: left + query_len]
+
+            for subseq in (curr_seq, rc(curr_seq)):
+
+                try:
+                    subseq_dict[subseq] += 1
+                except KeyError:
+                    subseq_dict[subseq] = 1
+                # end if
+            # end for
+        # end while
+
+        return subseq_dict
+    # end def count_occurences
+
+else:
+
+    def count_occurences(sequence, query_len):
+        # Function counts occurences only on positive strand
+
+        subseq_dict = dict()
+
+        stop = len(sequence) - query_len
+
+        for left in range(stop+1):
+            curr_seq = sequence[left: left + query_len]
             try:
-                subseq_dict[subseq] += 1
+                subseq_dict[curr_seq] += 1
             except KeyError:
-                subseq_dict[subseq] = 1
+                subseq_dict[curr_seq] = 1
             # end if
-        # end for
-    # end while
+        # end while
+
+        return subseq_dict
+    # end def count_occurences
+# end if
+
+
+def report_N_most_freq_occs(sequence, query_len, num_occs_print, outfile):
+
+    sequence = sequence.upper()
+
+    # `subseq_dict` (dictionary of subsequences) has the following format:
+    #   {<SUBSEQUENCE>: <OCCURRENCE>},
+    # where: <SUBSEQUENCE> if of str type,
+    #        <OCCURRENCE> is of int type
+    subseq_dict = count_occurences(sequence, query_len)
 
     # Select top-'num_occs_print' entries
     subseq_list = sorted(subseq_dict.items(), key=lambda x: -x[1])
@@ -221,15 +269,21 @@ def kernel(sequence, query_len, num_occs_print, outfile):
             break
         # end if
         printl("{} - {} occurences.".format(subseq, score))
-        
-    # end while
+    # end for
+# end def report_N_most_freq_occs
 
-    # One extra line will be printed -- wipe it with spaces
-    # printl("\033[1A" + '-'*20 + ' '*(os.get_terminal_size().columns-20))
-# end def kernel
+
+print(" - Length of subsequence to search: {};".format(query_len))
+print(" - Number of top-the-highest frequencies to show in output: {};".format(num_occs_print))
+if both_strands:
+    print(" - The script will count subsequences on both strands of input sequences.")
+else:
+    print(" - The script will count subsequences only on positive strand of input sequences.")
+# end if
+print()
+
 
 with open("most_freq_subseq_result.txt", 'w') as outfile:
-
 
     def printl(text=""):
         print(text)
@@ -238,14 +292,13 @@ with open("most_freq_subseq_result.txt", 'w') as outfile:
 
     for fpath in sbjct_lst:
 
-        printl("File '{}':".format(fpath))
+        printl("File `{}`:".format(fpath))
         how_to_open = OPEN_FUNCS[ is_gzipped(fpath) ]
-        fmt_func = FORMATTING_FUNCS[ is_gzipped(fpath) ]
 
         with how_to_open(fpath) as infile:
 
             sequence = ""
-            line = fmt_func(infile.readline())
+            line = infile.readline().strip()
             seq_id = line
 
             if not line.startswith('>'):
@@ -253,22 +306,32 @@ with open("most_freq_subseq_result.txt", 'w') as outfile:
                 printl("File: '{}'".format(fpath))
                 platf_depend_exit(1)
             else:
-                printl("{}:".format(seq_id[1:]))
+                printl("Sequence {}:".format(seq_id[1:]))
             # end if
 
-            line = fmt_func(infile.readline())
+            line = infile.readline().strip()
+
             while line != "":
+
                 sequence += line
-                line = fmt_func(infile.readline())
+                line = infile.readline().strip()
+
                 if line.startswith('>') or line == "":
+
                     if query_len > len(sequence):
-                        printl("Query length is greater then length of the subject sequence!")
-                    kernel(sequence, query_len, num_occs_print, outfile)
+                        printl(
+                            "Query length ({} bp) is greater then length of the subject sequence ({} bp)!" \
+                                .format(query_len, len(sequence))
+                        )
+                    else:
+                        report_N_most_freq_occs(sequence, query_len, num_occs_print, outfile)
+                    # end if
+
                     if line.startswith('>'):
                         sequence = ""
                         seq_id = line
-                        line = fmt_func(infile.readline())
-                        printl("{}:".format(seq_id[1:]))
+                        line = infile.readline().strip()
+                        printl("Sequence {}:".format(seq_id[1:]))
                     # end if
                 # end if
             # end while

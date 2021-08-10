@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2021-08-10
+
+`most-freq-subseq` can now count subsequences either on positive strand or on both strands of input sequences (see option `--both-strands`). Default behaviour is to count subsequences only on positive strand.
+
+### Version changes:
+
+- most-freq-subseq: `1.1.b -> 1.2.a`
+
 ## 2021-04-16
 
 seqator now takes input files from directory `./contigs/DNA Files` if directory `./contigs` contains no "SPAdes-like" `.dna` files.
