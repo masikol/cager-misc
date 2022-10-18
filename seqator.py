@@ -10,7 +10,7 @@
 # ---------------------------------
 
 __version__ = "2.0.a"
-__last_update_date__ = "2022-10-10"
+__last_update_date__ = "2022-10-18"
 
 
 import sys
@@ -40,7 +40,7 @@ def platf_depend_exit(exit_code=0):
         input("Press ENTER to exit:")
     # end if
     sys.exit(exit_code)
-# end def platf_depend_exit
+# end def
 
 def print_help():
     print("\n    |=== seqator ===|")
@@ -53,15 +53,16 @@ def print_help():
     print("If directory `./contigs/` contains no \"SPAdes-like\" files,")
     print("  seqator.py takes them from directory `./contigs/DNA Files`.")
 
-    print("\nMoreover, seqator performs the same task on file `./contigs.fasta`.")
-    print("It copies sequences having coverage below the threshold to a separate fasta file.")
+    print("\nMoreover, seqator performs the same task on file `./contigs.fasta`,")
+    print("  if it is located in the working directory.")
+    print("The script copies sequences having coverage below the threshold to a separate fasta file.")
 
     print("\nUsage:")
     print("You can specify coverage threshold in command line:\n")
     print("  python3 seqator.py 12\n")
     print("Or run just this, and script will ask you to enter threshold from keyboard:")
     print("  python3 seqator.py")
-# end def print_help
+# end def
 
 # Firstly check for information-providing flags
 
@@ -122,37 +123,57 @@ import shutil
 is_target_file = lambda f: not re.match(r"NODE_[0-9]+_length_[0-9]+_cov_[0-9\.\,]+\.dna", f) is None
 
 
-def get_target_files():
-    # Choose target directory. It may vary from one SnapGene to another
+def get_target_dirpath():
     possible_target_dirs = (
         "contigs",
         os.path.join("contigs", "DNA Files")
     )
-    target_dir = None
+    target_file_counter = 0
+    target_dirpath = possible_target_dirs[target_file_counter]
+
+    target_file_count = count_target_files(target_dirpath)
+
+    while target_file_count == 0:
+        target_file_counter += 1
+        try:
+            target_dirpath = possible_target_dirs[target_file_counter]
+        except IndexError:
+            raise NoDNAFilesError()
+        # end try
+        target_file_count = count_target_files(target_dirpath)
+    # end while
+
+    return target_dirpath
+# end def
 
 
-    for directory in possible_target_dirs:
+def count_target_files(target_dirpath):
+    return len(
+        tuple(
+            filter(is_target_file, os.listdir(target_dirpath))
+        )
+    )
+# end def
 
-        # Check if there is 'contigs/' directory in working dir
-        if not os.path.exists(directory):
-            # TODO: do I need to report sth here?
-            # print("Error: Cannot find files to process.")
-            # print("Directory `{}` does not exist.\n".format(directory))
-            # print("Please, type `python3 seqator.py -h` to see help.")
-            # platf_depend_exit(1)
-            return tuple()
-        # end if
 
-        if len(get_target_files(directory)) != 0:
-            target_dir = directory
-            break
-        # end if
-    # end for
+class NoDNAFilesError(Exception):
+    pass
+# end class
+
+
+def get_target_files(target_dirpath):
+
+    make_abspath = lambda basename: os.path.abspath(
+        os.path.join(target_dirpath, basename)
+    )
 
     return tuple(
-        filter(
-            is_target_file,
-            os.listdir(directory_path)
+        map(
+            make_abspath,
+            filter(
+                is_target_file,
+                os.listdir(target_dirpath)
+            )
         )
     )
 # end def
@@ -160,9 +181,9 @@ def get_target_files():
 
 def parse_coverage(spades_like_str):
     # Get coverage + (maybe) `.dna`
-    cov = spades_like_str.split('_')[5].replace(',', '.')
+    cov = spades_like_str.split("_")[5].replace(",", ".")
     # Prune '.dna'
-    cov = cov.replace('.dna', '')
+    cov = cov.replace(".dna", "")
     return cov
 # end def
 
@@ -171,18 +192,18 @@ def fasta_records(fpath):
 
     first_seq = True
     line = None
-    name, seq = None, ''
+    name, seq = None, ""
 
-    with open(fpath, 'rt') as infile:
+    with open(fpath, "rt") as infile:
 
-        while line != '':
+        while line != "":
             line = infile.readline()
 
-            if line.startswith('>'):
+            if line.startswith(">"):
                 if not first_seq:
                     yield {
-                        'name': name,
-                        'seq' :  seq,
+                        "name": name,
+                        "seq" :  seq,
                     }
                     name, seq = None, ''
                 else:
@@ -196,8 +217,8 @@ def fasta_records(fpath):
 
             else:
                 yield {
-                    'name': name,
-                    'seq' :  seq,
+                    "name": name,
+                    "seq" :  seq,
                 }
                 return
             # end if
@@ -208,24 +229,31 @@ def fasta_records(fpath):
 
 def write_fasta_record(outfile, record):
     outfile.write('>{}\n{}\n'.format(
-        record['name'],
-        record['seq'])
+        record["name"],
+        record["seq"])
     )
 # end def
 
 
 
 # Get paths to files to process
-input_fpaths = get_target_files() # take only 'NODE_*.dna' files
+try:
+    target_dirpath = get_target_dirpath()
+except NoDNAFilesError:
+    input_fpaths = tuple()
+else:
+    # take only 'NODE_*.dna' files
+    input_fpaths = get_target_files(target_dirpath)
+# end try
 
 contigs_fpath = "contigs.fasta"
 contigs_exist = os.path.exists(contigs_fpath)
 
 
 if len(input_fpaths) == 0 and not contigs_exist:
-    # TODO: make a proper message
-    # print("There are no \"SPAdes-like\" files in target directory: `{}`".format(target_dir))
-    print('No input data found!')
+    print("No input data found!")
+    print('Cannot find appropriate ("SPAdes-like") .dna files,')
+    print("  and the file `{}` does not exist.".format(contigs_fpath))
     print("Please, type `python3 seqator.py -h` to see help.")
     platf_depend_exit(1)
 # end if
@@ -237,10 +265,10 @@ print(" seqator.py; Version {}; {} edition;\n".format(__version__, __last_update
 # == Move DNA files ==
 
 if len(input_fpaths) != 0:
-    print("seqator will process directory `{}`".format(target_dir))
+    print("seqator will process directory `{}`".format(target_dirpath))
 
     # Configure path to output dir
-    new_path = os.path.join(target_dir, "cov_below_{}".format(cov_threshold))
+    new_path = os.path.join(target_dirpath, "cov_below_{}".format(cov_threshold))
     if not os.path.isdir(new_path):
         os.makedirs(new_path)
     # end if
@@ -251,12 +279,12 @@ if len(input_fpaths) != 0:
     for fpath in input_fpaths:
 
         # Retrieve coverage from file name
-        cov = parse_coverage(fpath)
+        cov = parse_coverage(os.path.basename(fpath))
 
         # Compare and move if less
         if float(cov) < cov_threshold:
             print("Moving `{}`".format(fpath))
-            shutil.move(os.path.join(target_dir, fpath), new_path)
+            shutil.move(fpath, new_path)
             moved_counter += 1
         # end if
     # end for
@@ -268,10 +296,10 @@ if len(input_fpaths) != 0:
     # end if
 
     print("=" * 45)
-    print("{} files moved to `{}`".format(moved_counter, new_path))
-    print("{} files left in `{}`\n".format(len(input_fpaths) - moved_counter, target_dir))
+    print("{} files moved to `{}/`".format(moved_counter, new_path))
+    print("{} files left in `{}/`\n".format(len(input_fpaths) - moved_counter, target_dirpath))
 else:
-    print('No .dna files to process have been found.\n')
+    print("No .dna files to process have been found.\n")
 # end if
 
 
@@ -280,18 +308,18 @@ else:
 if contigs_exist:
     fasta_outfpath = os.path.join(os.getcwd(), "contigs_cov_below_{}.fasta".format(cov_threshold))
     print(
-        'Copying sequences with coverage < {} from file `{}` to file `{}`.' \
+        "Copying sequences with coverage < {} from file `{}` to file `{}`." \
             .format(cov_threshold, contigs_fpath, fasta_outfpath)
     )
 
     total_counter, cp_counter = 0, 0
-    with open(fasta_outfpath, 'wt') as outfile:
+    with open(fasta_outfpath, "wt") as outfile:
         for record in fasta_records(contigs_fpath):
-            cov = parse_coverage(record['name'])
+            cov = parse_coverage(record["name"])
             total_counter += 1
 
             if float(cov) < cov_threshold:
-                print("Copying sequence `{}`".format(record['name']))
+                print("Copying sequence `{}`".format(record["name"]))
                 write_fasta_record(outfile, record)
                 cp_counter += 1
             # end if
@@ -304,7 +332,7 @@ if contigs_exist:
             .format(cp_counter, total_counter, contigs_fpath, fasta_outfpath)
     )
 else:
-    print('No `contigs.fasta` file has been found.\n')
+    print("No `contigs.fasta` file has been found.\n")
 # end if
 
 
