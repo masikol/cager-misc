@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2023-03-01
+
+Rewrite `seqator.py` compeletely to add flexibility.
+
+### Version changes:
+
+- seqator: `2.0.a -> 3.0.a`
+
 ## 2021-08-10
 
 `most-freq-subseq` can now count subsequences either on positive strand or on both strands of input sequences (see option `--both-strands`). Default behaviour is to count subsequences only on positive strand.

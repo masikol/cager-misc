@@ -1,29 +1,29 @@
 #!/usr/bin/env python3
 #
-# ---------------------------------
-# Script moves "SPAdes-like" *.dna files with coverage less than specified one
+# Script moves 'SPAdes-like' *.dna files with coverage less than specified one
 #   from 'contigs/' directory to directory 'cov_below_x/'.
-# "SPAdes-like" means that name of file is of following format:
+# 'SPAdes-like' means that name of file is of following format:
 #   NODE_1_length_61704_cov_114.517.dna
-# If directory `./contigs/` contains no "SPAdes-like" files,
+# If directory `./contigs/` contains no 'SPAdes-like' files,
 #   seqator.py takes them from directory `./contigs/DNA Files`
-# ---------------------------------
 
-__version__ = "2.0.a"
-__last_update_date__ = "2022-10-18"
+__version__ = '3.0.a'
+__last_update_date__ = '2023-03-01'
+__author__ = 'Maxim Sikolenko'
+__author_email__ = 'sikolenko@bio.bsu.by'
 
 
 import sys
 
 
 if sys.version_info.major < 3:
-    print( "\nYour python interpreter version is " + "%d.%d" % (sys.version_info.major,
+    print( '\nYour python interpreter version is ' + '%d.%d' % (sys.version_info.major,
         sys.version_info.minor) )
-    print("   Please, use Python 3.\a")
+    print('   Please, use Python 3.\a')
     # In python 2 'raw_input' does the same thing as 'input' in python 3.
     # Neither does 'input' in python2.
-    if sys.platform.startswith("win"):
-        raw_input("Press ENTER to exit:")
+    if sys.platform.startswith('win'):
+        raw_input('Press ENTER to exit:')
     # end if
     sys.exit(1)
 # end if
@@ -33,178 +33,492 @@ def platf_depend_exit(exit_code=0):
     """
     Function asks to press ENTER press on Windows
         and exits after that.
-
     :type exit_code: int;
     """
-    if sys.platform.startswith("win"):
-        input("Press ENTER to exit:")
+    if sys.platform.startswith('win'):
+        input('Press ENTER to exit:')
     # end if
     sys.exit(exit_code)
 # end def
 
 def print_help():
-    print("\n    |=== seqator ===|")
-    print("Version {}. {} edition.\n".format(__version__, __last_update_date__))
+    print('== seqator ==')
+    print('Version {}. {} edition.'.format(__version__, __last_update_date__))
+    print('By {}, <{}>\n'.format(__author__, __author_email__))
 
-    print("Script moves \"SPAdes-like\" *.dna files with coverage less than specified one")
-    print("  from directory `./contigs/` to directory `cov_below_x/`.")
-    print("\"SPAdes-like\" means that name of file is of following format:")
-    print("  NODE_1_length_61704_cov_114.517.dna")
-    print("If directory `./contigs/` contains no \"SPAdes-like\" files,")
-    print("  seqator.py takes them from directory `./contigs/DNA Files`.")
+    print('= Description =')
+    print('This script performs binning. It bins sequences (in fasta format)')
+    print('  and sequence-containing files which have SPAdes-like headers and file names, respectively.')
+    print('"SPAdes-like" means the following format:')
+    print('  NODE_1_length_61704_cov_114.517')
+    print('Seqator can bin according to sequence length and coverage (`length` and `cov` in SPAdes-like line).\n')
 
-    print("\nMoreover, seqator performs the same task on file `./contigs.fasta`,")
-    print("  if it is located in the working directory.")
-    print("The script copies sequences having coverage below the threshold to a separate fasta file.")
+    print('= Options =')
+    print('-i / --input')
+    print('  Input directory or fasta file, depending on seqator_mode (-m).')
+    print('  And input fasta file may be gzipped.')
+    print('  Mandatory.')
+    print('-x / --target-file-extention')
+    print('  This option is applicable only if seqator_mode (-m) is `dir`.')
+    print('  `-x` is the extention of files to be checked, without the preceding dot.')
+    print('  E.g. if you want to bin .fasta files, then specify `-x fasta`.')
+    print('  Optional. Default: `dna`.')
+    print('# Output')
+    print('-o / --output')
+    print('  Output directory or fasta file, depending on `-m`.')
+    print('  If the file name ends with `.gz`, the output file will be gzipped.')
+    print('  Optional. By default, the script will create an output directory in the wokring directory.')
+    print('# Seqator mode')
+    print('-m / --seqator-mode')
+    print('  There are two modes: `dir` and `fasta_file`.')
+    print('  If the mode is `dir`, the script will move files which pass the filter')
+    print('    from the input directory to the output directory.')
+    print('  If the mode is `fasta_file`, the script will copy sequences which pass the filter')
+    print('    from the input file to the output file.')
+    print('  Also, `-m` may be `auto`. In `auto` mode, the mode will be')
+    print('    `dir` if `-i` is a directory and `fasta_file` if `-i` is a regular file.')
+    print('  Optional. Default: `auto`.')
+    print('# Filter')
+    print('-p / --filter-parameter')
+    print('  There are two sequence parameters to filter by: `len` and `cov`:')
+    print('    length and coverage, respectively.')
+    print('  Optional. Default: `cov`.')
+    print('-f / --filter-mode')
+    print('  There are basically six ways to compare numbers:')
+    print('    `lt` (Less Than),    `le` (Less or Equal),')
+    print('    `gt` (Greater Than), `ge` (Greater or Equal),')
+    print('    `eq` (EQual to),     `ne` (Not Equal to).')
+    print('  E.g. if you specify `-p cov -f lt -t 12.5 -m fasta_file`, then')
+    print('    the script will copy all sequences having coverage less then 12.5 to the output file.')
+    print('  Optional. Default: `lt`.')
+    print('-t / --threshold')
+    print('  Threshold to use for filtering by `-p` parameter.')
+    print('  See the example for `-f` option -- there you\'ll see how `-t` option works.')
+    print('  Mandatory.')
+    print('# Help and version')
+    print('-h / --help')
+    print('  Print help message and exit.')
+    print('-v / --version')
+    print('  Print version and exit.\n')
 
-    print("\nUsage:")
-    print("You can specify coverage threshold in command line:\n")
-    print("  python3 seqator.py 12\n")
-    print("Or run just this, and script will ask you to enter threshold from keyboard:")
-    print("  python3 seqator.py")
+    print('= Examples =')
+    print('Example 1 -- `dir` seqator mode.')
+    print('  Move `.dna` files having contig coverage greater than 10 from directory `indir/` to `outdir/`.')
+    print('  python3 seqator.py \\')
+    print('    -i indir \\')
+    print('    -x dna \\')
+    print('    -p cov \\')
+    print('    -f gt \\')
+    print('    -t 10 \\')
+    print('    -o outdir')
+    print('Example 2 -- `fasta_file` seqator mode')
+    print('  Copy sequences from file `input.fasta` which have sequence length less than 1000 bp to file `output.fasta.gz`.')
+    print('  python3 seqator.py \\')
+    print('    -i input.fasta \\')
+    print('    -p len \\')
+    print('    -f lt \\')
+    print('    -t 1000 \\')
+    print('    -o output.fasta.gz')
+ 
 # end def
 
 # Firstly check for information-providing flags
 
-if "-h" in sys.argv[1:] or "--help" in sys.argv[1:]:
+if '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
     print_help()
     platf_depend_exit()
 # end if
 
-if "-v" in sys.argv[1:] or "--version" in sys.argv[1:]:
+if '-v' in sys.argv[1:] or '--version' in sys.argv[1:]:
     print(__version__)
     platf_depend_exit()
 # end if
 
-# Get coverage value
-if len(sys.argv) == 2:
-    # If it is specified in argv
 
-    try:
-        cov_threshold = float(sys.argv[1].replace(',', '.')) # specially for evil russian KGB
-        if cov_threshold < 0:
-            raise ValueError
-    except ValueError:
-        print("Invalid coverage specified: `{}`".format(cov_threshold))
-        print("Must be positive number!")
-        platf_depend_exit(1)
-    # end try
+import argparse
 
-elif len(sys.argv) == 1:
-    # If no coverage specified in argv, ask to enter it from keyboard
+parser = argparse.ArgumentParser()
 
-    cov_threshold = None
-    while cov_threshold is None:
-        cov_threshold = input("Please, enter coverage threshold:")
-        cov_threshold = cov_threshold.replace(',', '.') # specially for evil russian KGB
-        try:
-            cov_threshold = float(cov_threshold)
-            if cov_threshold < 0:
-                raise ValueError
-        except ValueError:
-            print("Invalid coverage specified: `{}`".format(cov_threshold))
-            print("It must be a positive number.")
-            cov_threshold = None
-        # end try
-    # end while
+# Input
 
-else:
-    print_help()
-    platf_depend_exit(1)
-# end if
+parser.add_argument(
+    '-i',
+    '--input',
+    help='TODO: add help',
+    required=True
+)
 
+# Parameters
+
+parser.add_argument(
+    '-m',
+    '--seqator-mode',
+    help='TODO: add help',
+    required=False,
+    default='auto'
+)
+
+parser.add_argument(
+    '-p',
+    '--filter-parameter',
+    help='TODO: add help',
+    required=False,
+    default='cov'
+)
+
+parser.add_argument(
+    '-f',
+    '--filter-mode',
+    help='TODO: add help',
+    required=False,
+    default='lt'
+)
+
+parser.add_argument(
+    '-t',
+    '--threshold',
+    help='TODO: add help',
+    required=True
+)
+
+parser.add_argument(
+    '-x',
+    '--target-file-extention',
+    help='TODO: add help',
+    required=False,
+    default='dna'
+)
+
+# Output
+
+parser.add_argument(
+    '-o',
+    '--output',
+    help='TODO: add help',
+    required=False,
+    default=''
+)
+
+parser_args = parser.parse_args()
+
+
+# == Import them now ==
 
 import os
 import re
+import gzip
 import shutil
+import operator
 
 
-# We will process only those .dna files, which are SPAdes contigs
-is_target_file = lambda f: not re.match(r"NODE_[0-9]+_length_[0-9]+_cov_[0-9\.\,]+\.dna", f) is None
+# == Data ==
+
+# SPAdes-like string
+SPADES_PATTERN = re.compile(
+    r'NODE_[0-9]+_length_[0-9]+_cov_[0-9\.\,]+'
+)
 
 
-def get_target_dirpath():
-    possible_target_dirs = (
-        "contigs",
-        os.path.join("contigs", "DNA Files")
-    )
-    target_file_counter = 0
-    target_dirpath = possible_target_dirs[target_file_counter]
-
-    target_file_count = count_target_files(target_dirpath)
-
-    while target_file_count == 0:
-        target_file_counter += 1
-        try:
-            target_dirpath = possible_target_dirs[target_file_counter]
-        except IndexError:
-            raise NoDNAFilesError()
-        # end try
-        target_file_count = count_target_files(target_dirpath)
-    # end while
-
-    return target_dirpath
-# end def
+class Args:
+    def __init__(self, parser_args):
+        self.seqator_mode = parse_seqator_mode(parser_args)
+        self.input = parse_input(parser_args, self.seqator_mode)
+        self.threshold = parse_threshold(parser_args)
+        self.target_file_extention = r'{}'.format(parser_args.target_file_extention)
+        self.filter_parameter = parse_parameter(parser_args)
+        self.filter_mode = parse_filter_mode(parser_args)
+        self.output_path = parse_output_path(parser_args, self.seqator_mode)
+    # end def
+# end class
 
 
-def count_target_files(target_dirpath):
-    return len(
-        tuple(
-            filter(is_target_file, os.listdir(target_dirpath))
-        )
-    )
-# end def
+class FastaRecord:
+    def __init__(self, name, seq):
+        self.name = name
+        self.seq = seq
+    # end def
+# end class
 
 
-class NoDNAFilesError(Exception):
+class NoTargerFilesError(Exception):
     pass
 # end class
 
 
-def get_target_files(target_dirpath):
+# == Functions ==
 
-    make_abspath = lambda basename: os.path.abspath(
-        os.path.join(target_dirpath, basename)
+def parse_threshold(parser_args):
+    try:
+        threshold = float(
+            parser_args.threshold.replace(',', '.') # specially for evil russian KGB
+        )
+    except ValueError:
+        print('Error: threshold value is invalid: `{}`'.format(parser_args.threshold))
+        print('It must be a number.')
+        platf_depend_exit(1)
+    # end try
+    return threshold
+# end def
+
+def parse_parameter(parser_args):
+    allowed_parameters = {'len', 'cov'}
+    filter_parameter = parser_args.filter_parameter.lower()
+    if not filter_parameter in allowed_parameters:
+        print('Error: target parameter is invalid: `{}`'.format(filter_parameter))
+        print('It must be one of the following: {}.'.format(allowed_parameters))
+        platf_depend_exit(1)
+    # end if
+    return filter_parameter
+# end def
+
+def parse_filter_mode(parser_args):
+    allowed_modes = {
+        'lt', 'le',
+        'gt', 'ge',
+        'eq', 'ne',
+    }
+    filter_mode = parser_args.filter_mode.lower()
+    if not filter_mode in allowed_modes:
+        print('Error: comparison mode is invalid: `{}`'.format(filter_mode))
+        print('It must be one of the following: {}.'.format(allowed_modes))
+        platf_depend_exit(1)
+    # end if
+    return filter_mode
+# end def
+
+def parse_seqator_mode(parser_args):
+    allowed_modes = {
+        'dir',
+        'fasta_file',
+        'auto',
+    }
+    seqator_mode = parser_args.seqator_mode.lower()
+    if not seqator_mode in allowed_modes:
+        print('Error: comparison mode is invalid: `{}`'.format(seqator_mode))
+        print('It must be one of the following: {}.'.format(allowed_modes))
+        platf_depend_exit(1)
+    # end if
+
+    input_abspath = os.path.abspath(parser_args.input)
+
+    if seqator_mode == 'auto':
+        if os.path.isdir(input_abspath):
+            seqator_mode = 'dir'
+        elif os.path.isfile(input_abspath):
+            seqator_mode = 'fasta_file'
+        else:
+            print('Error: cannot recognize input type: `{}`'.format(parser_args.input))
+            platf_depend_exit(1)
+        # end if
+    # end if
+
+    return seqator_mode
+# end def
+
+def parse_input(parser_args, seqator_mode):
+    input_abspath = os.path.abspath(parser_args.input)
+
+    if seqator_mode == 'fasta_file':
+        if not os.path.isfile(input_abspath):
+            print('Error: `{}` is not a file'.format(input_abspath))
+            platf_depend_exit(1)
+        # end if
+    elif seqator_mode == 'dir':
+        if not os.path.isdir(input_abspath):
+            print('Error: `{}` is not a directory'.format(input_abspath))
+            platf_depend_exit(1)
+        # end if
+    else:
+        print('Error: invalid seqator mode: `{}`'.format(seqator_mode))
+        platf_depend_exit(1)
+    # end if
+
+    return input_abspath
+# end def
+
+def parse_output_path(parser_args, seqator_mode):
+    if parser_args.output != '':
+        return os.path.abspath(parser_args.output)
+    else:
+        if seqator_mode == 'fasta_file':
+            return os.path.join(
+                os.getcwd(),
+                '{}_{}_{}.fasta'.format(
+                    parser_args.filter_parameter,
+                    parser_args.filter_mode,
+                    parser_args.threshold
+                )
+            )
+        elif seqator_mode == 'dir':
+            return os.path.join(
+                os.getcwd(),
+                '{}_{}_{}'.format(
+                    parser_args.filter_parameter,
+                    parser_args.filter_mode,
+                    parser_args.threshold
+                )
+            )
+        else:
+            print('Error: invalid seqator mode: `{}`'.format(seqator_mode))
+            platf_depend_exit(1)
+        # end if
+    # end if
+# end def
+
+
+def report_args(args):
+    print('-- Arguments --')
+    if args.seqator_mode == 'dir':
+        print('Input:')
+        print('  Input directory: {}'.format(args.input))
+        print('Output:')
+        print('  Output directory: {}'.format(args.output_path))
+    elif args.seqator_mode == 'fasta_file':
+        print('Input:')
+        print('  Input file: {}'.format(args.input))
+        print('Output:')
+        print('  Output file: {}'.format(args.output_path))
+    # end if
+    print('Parameters:')
+    print('  Seqator mode: {}'.format(args.seqator_mode))
+    print('  Target parameter: {}'.format(args.filter_parameter))
+    print('  Comparison mode: {}'.format(args.filter_mode))
+    print('  Threshold: {}'.format(args.threshold))
+    if args.seqator_mode == 'dir':
+        print('  Target file extention: {}'.format(args.target_file_extention))
+    elif args.seqator_mode == 'fasta_file':
+        print('  Target file extention: not applicable')
+    # end if
+
+    print('-' * 15 + '\n')
+# end def
+
+
+def get_input_fpaths(args):
+    input_dirpath = args.input
+
+    spades_like_fpaths = filter(
+        fpath_is_spades_like,
+        os.listdir(input_dirpath)
     )
 
+    fpaths_with_target_extention = filter(
+        lambda f: f.endswith('.{}'.format(args.target_file_extention)),
+        spades_like_fpaths
+    )
+
+    make_abspath = lambda basename: os.path.abspath(
+        os.path.join(input_dirpath, basename)
+    )
     return tuple(
         map(
             make_abspath,
-            filter(
-                is_target_file,
-                os.listdir(target_dirpath)
-            )
+            fpaths_with_target_extention
         )
     )
 # end def
 
+def fpath_is_spades_like(fpath):
+    global SPADES_PATTERN
+    return not SPADES_PATTERN.search(fpath) is None
+# end def
+
+
+def fpath_to_spades_like_str(fpath, target_file_extention):
+    return os.path.basename(
+        fpath
+    ).replace(
+        '.{}'.format(target_file_extention),
+        ''
+    )
+# end def
+
+
+def choose_parse_target_param_function(filter_parameter):
+    if filter_parameter == 'cov':
+        return parse_coverage
+    else:
+        return parse_len
+    # end def
+# end def
 
 def parse_coverage(spades_like_str):
-    # Get coverage + (maybe) `.dna`
-    cov = spades_like_str.split("_")[5].replace(",", ".")
-    # Prune '.dna'
-    cov = cov.replace(".dna", "")
+    check_spades_str_format(spades_like_str)
+    try:
+        cov_str = spades_like_str.split('_')[5].replace(',', '.')
+        cov = float(cov_str)
+    except ValueError:
+        print('Error in sequence `{}`.'.format(spades_like_str))
+        print('  Coverage is invalid: `{}`.'.format(cov_str))
+        print('It must be a number.')
+        platf_depend_exit(1)
+    # end try
     return cov
+# end def
+
+def parse_len(spades_like_str):
+    check_spades_str_format(spades_like_str)
+    try:
+        len_str = spades_like_str.split('_')[3]
+        length = int(len_str)
+    except ValueError:
+        print('Error in sequence `{}`.'.format(spades_like_str))
+        print('  Length is invalid: `{}`.'.format(len_str))
+        print('It must be an integer number.')
+        platf_depend_exit(1)
+    # end try
+    return length
+# end def
+
+def check_spades_str_format(string):
+    global SPADES_PATTERN
+    ok = not SPADES_PATTERN.search(string) is None
+    if not ok:
+        print('Error: invalid format of a SPAdes-like string: `{}`'.format(string))
+        print('Here is an example of a valid SPAdes-like string:')
+        print('  NODE_1_length_40000_cov_22.55')
+        platf_depend_exit(1)
+    # end def
+# end def
+
+
+def choose_comparison_function(filter_mode):
+    if filter_mode == 'lt':
+        return operator.lt
+    elif filter_mode == 'le':
+        return operator.le
+    elif filter_mode == 'gt':
+        return operator.gt
+    elif filter_mode == 'ge':
+        return operator.ge
+    elif filter_mode == 'eq':
+        return operator.eq
+    elif filter_mode == 'ne':
+        return operator.ne
+    else:
+        raise ValueError('Invalid mode: `{}`'.format(filter_mode))
+    # end if
 # end def
 
 
 def fasta_records(fpath):
-
     first_seq = True
     line = None
-    name, seq = None, ""
+    name, seq = None, ''
 
-    with open(fpath, "rt") as infile:
+    if fpath.endswith('.gz'):
+        open_this_fasta = gzip.open
+    else:
+        open_this_fasta = open
+    # end if
 
-        while line != "":
+    with open_this_fasta(fpath, 'rt') as infile:
+        while line != '':
             line = infile.readline()
 
-            if line.startswith(">"):
+            if line.startswith('>'):
                 if not first_seq:
-                    yield {
-                        "name": name,
-                        "seq" :  seq,
-                    }
+                    yield FastaRecord(name, seq)
                     name, seq = None, ''
                 else:
                     first_seq = False
@@ -216,10 +530,7 @@ def fasta_records(fpath):
                 seq += line.strip()
 
             else:
-                yield {
-                    "name": name,
-                    "seq" :  seq,
-                }
+                yield FastaRecord(name, seq)
                 return
             # end if
         # end while
@@ -228,113 +539,148 @@ def fasta_records(fpath):
 
 
 def write_fasta_record(outfile, record):
-    outfile.write('>{}\n{}\n'.format(
-        record["name"],
-        record["seq"])
+    outfile.write(
+        '>{}\n{}\n'.format(
+            record.name,
+            record.seq
+        )
     )
 # end def
 
 
-
-# Get paths to files to process
-try:
-    target_dirpath = get_target_dirpath()
-except NoDNAFilesError:
-    input_fpaths = tuple()
-else:
-    # take only 'NODE_*.dna' files
-    input_fpaths = get_target_files(target_dirpath)
-# end try
-
-contigs_fpath = "contigs.fasta"
-contigs_exist = os.path.exists(contigs_fpath)
-
-
-if len(input_fpaths) == 0 and not contigs_exist:
-    print("No input data found!")
-    print('Cannot find appropriate ("SPAdes-like") .dna files,')
-    print("  and the file `{}` does not exist.".format(contigs_fpath))
-    print("Please, type `python3 seqator.py -h` to see help.")
-    platf_depend_exit(1)
-# end if
-
-
-print(" seqator.py; Version {}; {} edition;\n".format(__version__, __last_update_date__))
-
-
-# == Move DNA files ==
-
-if len(input_fpaths) != 0:
-    print("seqator will process directory `{}`".format(target_dirpath))
-
-    # Configure path to output dir
-    new_path = os.path.join(target_dirpath, "cov_below_{}".format(cov_threshold))
-    if not os.path.isdir(new_path):
-        os.makedirs(new_path)
+def make_outdir(args):
+    if args.seqator_mode == 'dir':
+        if not os.path.isdir(args.output_path):
+            make_directory(args.output_path)
+        # end if
+    elif args.seqator_mode == 'fasta_file':
+        outdir_path = os.path.dirname(args.output_path)
+        if not os.path.isdir(outdir_path):
+            make_directory(outdir_path)
+        # end if
+    else:
+        print('Error: invalid seqator mode: `{}`'.format(args.seqator_mode))
+        platf_depend_exit(1)
     # end if
-    print("Sequences with coverage below {} will be moved to directory `{}`\n".format(cov_threshold, new_path))
+# end def
 
-    # Proceed
+def make_directory(dirpath):
+    try:
+        os.makedirs(dirpath)
+    except OSError as err:
+        print('Error: cannot create directory `{}`'.format(outdir_path))
+        print(err)
+        platf_depend_exit(1)
+    # end try
+# end def
+
+
+def remove_outdir(outdir_path):
+    try:
+        os.rmdir(outdir_path)
+    except OSError as err:
+        print('Error: cannot remove output directory `{}`'.format(outdir_path))
+        print(err)
+        platf_depend_exit(1)
+    # end try
+# end def
+
+
+def bin_files_dir_mode(args):
+    input_fpaths = get_input_fpaths(args)
+
+    if len(input_fpaths) == 0:
+        print("Warning: not appropriate input files found.")
+        print('Advice: please, check target extention (option -x/--target-file-extention)')
+        return 0, 0
+    # end if
+
+    parse_filter_parameter = choose_parse_target_param_function(args.filter_parameter)
+    check_filter_parameter = choose_comparison_function(args.filter_mode)
+
     moved_counter = 0
     for fpath in input_fpaths:
-
-        # Retrieve coverage from file name
-        cov = parse_coverage(os.path.basename(fpath))
-
-        # Compare and move if less
-        if float(cov) < cov_threshold:
-            print("Moving `{}`".format(fpath))
-            shutil.move(fpath, new_path)
+        # Retrieve target parameter from file name
+        spades_like_str = fpath_to_spades_like_str(fpath, args.target_file_extention)
+        targ_param_value = parse_filter_parameter(spades_like_str)
+        # Compare and move if matches
+        if check_filter_parameter(targ_param_value, args.threshold):
+            print('Moving `{}`'.format(os.path.basename(fpath)))
+            shutil.move(fpath, args.output_path)
             moved_counter += 1
         # end if
     # end for
 
-
     # Remove output dir if it is empty
-    if len(os.listdir(new_path)) == 0:
-        os.rmdir(new_path)
+    if len(os.listdir(args.output_path)) == 0:
+        print('Output directory is empty -- removing it')
+        remove_outdir(args.output_path)
     # end if
 
-    print("=" * 45)
-    print("{} files moved to `{}/`".format(moved_counter, new_path))
-    print("{} files left in `{}/`\n".format(len(input_fpaths) - moved_counter, target_dirpath))
-else:
-    print("No .dna files to process have been found.\n")
-# end if
+    total_count = len(input_fpaths)
+    return total_count, moved_counter
+# end def
 
 
-# == Perform binning of file `contigs.fasta` if it exists in the WD ==
+def bin_file_fasta_file_mode(args):
+    parse_filter_parameter = choose_parse_target_param_function(args.filter_parameter)
+    check_filter_parameter = choose_comparison_function(args.filter_mode)
 
-if contigs_exist:
-    fasta_outfpath = os.path.join(os.getcwd(), "contigs_cov_below_{}.fasta".format(cov_threshold))
-    print(
-        "Copying sequences with coverage < {} from file `{}` to file `{}`." \
-            .format(cov_threshold, contigs_fpath, fasta_outfpath)
-    )
+    fasta_outfpath = args.output_path
+    if fasta_outfpath.endswith('.gz'):
+        open_this_fasta = gzip.open
+    else:
+        open_this_fasta = open
+    # end if
 
     total_counter, cp_counter = 0, 0
-    with open(fasta_outfpath, "wt") as outfile:
-        for record in fasta_records(contigs_fpath):
-            cov = parse_coverage(record["name"])
-            total_counter += 1
+    with open_this_fasta(fasta_outfpath, 'wt') as outfile:
 
-            if float(cov) < cov_threshold:
-                print("Copying sequence `{}`".format(record["name"]))
+        for record in fasta_records(args.input):
+            total_counter += 1
+            # Retrieve target parameter from file name
+            targ_param_value = parse_filter_parameter(record.name)
+            # Compare and copy if matches
+            if check_filter_parameter(targ_param_value, args.threshold):
+                print('Copying sequence `{}`'.format(record.name))
                 write_fasta_record(outfile, record)
                 cp_counter += 1
             # end if
         # end for
     # end with
 
-    print("=" * 45)
+    return total_counter, cp_counter
+# end def
+
+
+# == Proceed ==
+
+print('\n  == seqator version {} == \n'.format(__version__))
+
+# Parse and validate arguments
+args = Args(parser_args)
+report_args(args)
+
+# Create output dir
+make_outdir(args)
+
+# Binning
+print('Start binning')
+if args.seqator_mode == 'dir':
+    total_count, moved_count = bin_files_dir_mode(args)
+    print('Binning is completed')
+    print('=' * 45)
+    print('{}/{} files moved to `{}/`'.format(moved_count, total_count, args.output_path))
+    print('{} files left in `{}/`'.format(total_count - moved_count, args.input))
+elif args.seqator_mode == 'fasta_file':
+    total_count, cp_count = bin_file_fasta_file_mode(args)
+    print('Binning is completed')
+    print('=' * 45)
     print(
-        "{}/{} sequences copied from file `{}` to file `{}`\n" \
-            .format(cp_counter, total_counter, contigs_fpath, fasta_outfpath)
+        '{}/{} sequences copied from file `{}` to file `{}`' \
+            .format(cp_count, total_count, args.input, args.output_path)
     )
-else:
-    print("No `contigs.fasta` file has been found.\n")
 # end if
 
-
-print("Completed!")
+print('\nCompleted!')
 platf_depend_exit(0)

@@ -1,9 +1,9 @@
 # CAGER-misc
 
-Miscellaneous bioinformatic tools from [Laboratory](http://mbio.bas-net.by/cager/en/) "The **C**enter of **A**nalytical and **G**enetic **E**ngineering **R**esearch".
+Miscellaneous bioinformatic tools from [Laboratory](https://mbio.bas-net.by/cager/en/) “The **C**enter of **A**nalytical and **G**enetic **E**ngineering **R**esearch”.
 
 List of tools with links to manuals:
-- [pub](https://www.github.com/masikol/cager-misc/wiki/pub): a script for automatic picking up sequencing barcodes;
+- [pub](https://www.github.com/masikol/cager-misc/wiki/pub): a script for automatic selection of sequencing barcodes;
 - [dedupl-fastq](https://www.github.com/masikol/cager-misc/wiki/dedupl-fastq): the script is designed for deduplication of fastq files;
 - [sum-up-snv](https://www.github.com/masikol/cager-misc/wiki/sum-up-snv): a script for counting coverage and sigle nucleotive variants at a single specified position in SAM/BAM file;
 - [mean-qual](https://www.github.com/masikol/cager-misc/wiki/mean-qual): the script calculates mean quality of reads in `fastq` file(s);
