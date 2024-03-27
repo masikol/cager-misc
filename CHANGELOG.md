@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2024-03-27
+
+Add verbose mode to `sum-up-snv.awk`
+
+### Version changes:
+
+- sum-up-snv.awk: `0.1.c -> 0.2.a`
+
 ## 2023-03-01
 
 Rewrite `seqator.py` compeletely to add flexibility.

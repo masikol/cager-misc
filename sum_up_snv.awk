@@ -1,15 +1,29 @@
 #!/usr/bin/awk -f
 #
 # Script for summarizing variation ant single specified position in SAM/BAM file.
-# Tested on mawk 1.3.4 20200120.
+# Tested on GNU Awk 5.0.1.
 #
-# Version 0.1.c
-# 2020-10-15
+# Version 0.2.a
+# 2024-03-27
 #
-# Usage:
-#    samtools view <bam/sam> | awk -f sum_up_snv.awk pos=<POS>
+# == Usage ==
+# 1
+# Basic usage:
+#    samtools view <BAM/SAM> | awk -f sum_up_snv.awk pos=<POS>
 # Example:
 #    samtools view my_mapping.bam | awk -f sum_up_snv.awk pos=1067
+# Verbose: for each read print a tab-separated table having three columns: read_name, base, base_quality
+#    samtools view my_mapping.bam | awk -f sum_up_snv.awk pos=1067 verbose=1
+# 2
+# Faster -- specify reference sequence name:
+#    samtools view <BAM/SAM> <RNAME> | awk -f sum_up_snv.awk pos=<POS>
+# Example:
+#    samtools view my_mapping.bam chr1 | awk -f sum_up_snv.awk pos=1067
+# 3
+# Even faster -- specify single-base region:
+#    samtools view <BAM/SAM> <RNAME>:<POS>-<POS> | awk -f sum_up_snv.awk pos=<POS>
+# Example:
+#    samtools view my_mapping.bam chr1:1067-1067 | awk -f sum_up_snv.awk pos=1067
 
 
 BEGIN{
@@ -19,6 +33,9 @@ BEGIN{
     g_count = 0;
     c_count = 0;
     del_count = 0;
+    for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+        ord[sprintf("%c", ascii_code)] = ascii_code;
+    }
 }
 
 {
@@ -69,10 +86,17 @@ BEGIN{
             # If we reach our `pos`
             if (ref_pos >= pos) {
 
-                # Not deletion -- not "*" but a base
+                # Not a deletion (not "*") but a base
                 if (chr != "D") {
 
-                    base = substr(seq, read_pos-(ref_pos-pos), 1);
+                    base_pos = read_pos - (ref_pos-pos);
+                    base = substr(seq, base_pos, 1);
+
+                    if (verbose) {
+                        qual_encoded = substr($11, base_pos, 1);
+                        qual = ord[qual_encoded] - 33;
+                        printf("%s\t%s\t%d\n", $1, base, qual);
+                    }
 
                     if (base == "A") {
                         a_count++;
@@ -86,6 +110,9 @@ BEGIN{
                 } else {
                     # Deletion -- "*"
                     del_count++;
+                    if (verbose) {
+                        printf("%s\t*\t-\n", $1)
+                    }
                 }
                 break;
             }
@@ -101,8 +128,6 @@ END{
     printf("Position %d:\n", pos)
     printf("Coverage: %d\n", cov)
 
-    # Let us not to multiply `cov * 100` each time.
-    # Multiplication is faster than division -- let's divide here once and multiply 5 times later.
     cov_ratio = 100 / cov; 
     printf("A:%5d | %5.1f%%\n",   a_count,   a_count * cov_ratio);
     printf("T:%5d | %5.1f%%\n",   t_count,   t_count * cov_ratio);
