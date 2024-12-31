@@ -1,5 +1,9 @@
 # cager-misc changelog
 
+## 2024-12-31
+
+Add scripts `cigar_maplen.py` v1.0.a and `samtool_setop.py` v1.0.a.
+
 ## 2024-03-27
 
 Add verbose mode to `sum-up-snv.awk`
