@@ -1,5 +1,9 @@
 # cager-misc changelog
 
+## 2025-03-07. Evening edition
+
+Add `AAI-taxon.sh` v1.0.a.
+
 ## 2025-03-07
 
 Add `gla-glar.py` v1.0.a.

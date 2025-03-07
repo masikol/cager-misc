@@ -7,6 +7,7 @@ List of tools with links to manuals:
 - [cigar_maplen](https://www.github.com/masikol/cager-misc/wiki/cigar_maplen): a script for manual inspection of structural variants, mainly for long reads. It prints which portion of a read is actually mapped, and which portions are clipped from each side;
 - [samtools_setop](https://www.github.com/masikol/cager-misc/wiki/samtools_setop): the script performs set operations (intersection, union, difference) on read IDs that are mapped to arbitrary reference positions;
 - [gla-glar](https://www.github.com/masikol/cager-misc/wiki/gla-glar): “GLAde GLARer”: the script finds long intergenic and inter-CDS regions in GenBank files;
+- AAI-taxon.sh(Help page is yet to be done): the script calculates Average Amino acid Identities between a query genome and all type strain genomes of a given taxon;
 - [pub](https://www.github.com/masikol/cager-misc/wiki/pub): a script for automatic selection of sequencing barcodes;
 - [dedupl-fastq](https://www.github.com/masikol/cager-misc/wiki/dedupl-fastq): the script is designed for deduplication of fastq files;
 - [mean-qual](https://www.github.com/masikol/cager-misc/wiki/mean-qual): the script calculates mean quality of reads in `fastq` file(s);
