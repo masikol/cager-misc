@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2025-03-12
+
+Remove useless `genome_id_file_name_map` from `AAI-taxon.sh`.
+
+### Version changes:
+
+- AAI-taxon.sh: `1.0.a -> 1.0.b`
+
 ## 2025-03-07. Evening edition
 
 Add `AAI-taxon.sh` v1.0.a.

@@ -13,7 +13,7 @@ set -eu
 #               ezaai
 #               A jar file of ezaai version 1.2.3_masikol.0.2: EzAAI-1.2.3_masikol.0.2-jar-with-dependencies.jar
 
-VERSION='1.0.a'
+VERSION='1.0.b'
 COLOR='\x1B[0;33m'
 RESET_COLOR='\x1B[0m'
 
@@ -151,7 +151,6 @@ datadir="${WORKDIR_ROOT}/${TAXON}_db"
 ezaai_db_dir="${datadir}/ezaai-db"
 log_file="${WORKDIR_ROOT}/result.log"
 seq_data_dir="${datadir}/ncbi_dataset/data"
-genome_id_file_name_map="${WORKDIR_ROOT}/genome_id_2_fname_map.tsv"
 taxonomy_file="${WORKDIR_ROOT}/taxonomy.tsv"
 result_tsv="${WORKDIR_ROOT}/aai_result.tsv"
 result_tree="${WORKDIR_ROOT}/aai_result.nwk"
@@ -261,10 +260,6 @@ echo -n '' > "${log_file}"
         ezaai_convert_s_option='-s prot'
     fi
 
-    # Create genome ID to file name map file
-    echo -e "genome_id\tfile_name" \
-        > "${genome_id_file_name_map}"
-
     # Проходим по всем подкаталогам в указанной директории
     find "${seq_data_dir}" -type f -name "*.${QUERY_EXTENSION}" | while read -r seq_file; do
 
@@ -296,8 +291,6 @@ echo -n '' > "${log_file}"
             -o "${db_file}" \
             -l "${genome_id}"
 
-        echo -e "${genome_id}\t${file_basename}" \
-            >> "${genome_id_file_name_map}"
     done
     echo "----------------------------"
 
@@ -309,8 +302,6 @@ echo -n '' > "${log_file}"
         -i "${QUERY_FILE}" \
         -o "${db_file}" \
         -l "${genome_id}"
-    echo -e "${genome_id}\t${file_basename}" \
-        >> "${genome_id_file_name_map}"
 
     echo "----------------------------------------------------------------------"
     echo -e " ${COLOR} Starting EzAAI - calculate AAI value from profile DBs ${RESET_COLOR}"
@@ -340,7 +331,6 @@ echo "--------------------------------------------------------------------------
 echo -e " ${COLOR} Completed! ${RESET_COLOR}"
 echo " Result table: '${result_tsv}'"
 echo " Result tree: '${result_tree}'"
-echo " Genome ID to file name map: '${genome_id_file_name_map}'"
 echo " Taxonomy file: '${taxonomy_file}'"
 echo " Have fun and please come again!"
 
