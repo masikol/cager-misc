@@ -1,19 +1,20 @@
 #!/bin/bash
 
-set -eu
-# Параметры: $1 - taxon ID or name
-#            $2 - output directory
-#            $3 - Input multi-fasta file: genome (.fna) or protein sequences (.faa)
-#            $4 - Mode: 'genome' or 'protein'
-#            $5 - Path to EzAAI-1.2.3_masikol.0.2-jar-with-dependencies.jar
-#            $6 - Number of threads to use. Default: 1
-#            $7 - temporary directory for EzAAI. Default: /tmp/ezaai
-#            Dependencies:
-#               ncbi datasets
-#               ezaai
-#               A jar file of ezaai version 1.2.3_masikol.0.2: EzAAI-1.2.3_masikol.0.2-jar-with-dependencies.jar
+set -e
+# Parameters: $1 - taxon ID or name to download type strain sequences;
+#                  "off" if you want no sequences to be downloaded and want to compare local files only;
+#             $2 - output directory
+#             $3 - A file containing paths to input fasta files: genomic (.fna) or amino acid sequences (.faa), one per line
+#             $4 - Mode: 'genome' or 'protein'
+#             $5 - Path to EzAAI-1.2.3_masikol.0.2-jar-with-dependencies.jar
+#             $6 - Number of threads to use. Default: 1
+#             $7 - temporary directory for EzAAI. Default: /tmp/ezaai
+#             Dependencies:
+#                  ncbi datasets
+#                  ezaai
+#                  A jar file of ezaai version 1.2.3_masikol.0.2: EzAAI-1.2.3_masikol.0.2-jar-with-dependencies.jar
 
-VERSION='1.0.b'
+VERSION='2.0.a'
 COLOR='\x1B[0;33m'
 RESET_COLOR='\x1B[0m'
 
@@ -27,17 +28,17 @@ echo "  \_____|/_/    \_\\\\_____||______||_|  \_\          |______|\__,_||_.__/
 echo "                                                                         "
 echo " ------------------------------------------------------------------------"
 echo " - presents - the program AAI-taxon! Version ${VERSION}"
-echo " - `date`"
+echo " - $(date)"
 echo " ------------------------------------------------------------------------"
 
 if [[ -n "$1" ]]; then
-    TAXON="${1}"
+    TAXON_TO_DOWNLOAD="${1}"
     echo " "
     echo -e " ${COLOR} Welcome to our crimson submarine! ${RESET_COLOR}"
     echo -e " ${COLOR} Please take a deep breath: we are about to begin! ${RESET_COLOR}"
     echo "----------------------------------------------------"
     echo " "
-    echo " You have chosen Taxon ID / Name: '${TAXON}'"
+    echo " You have chosen Taxon ID / Name: '${TAXON_TO_DOWNLOAD}'"
 else
     echo "Error: Taxon ID / Name (\$1) is not specified!"
     exit 1
@@ -53,8 +54,8 @@ else
 fi
 
 if [[ -n "$3" ]]; then
-    QUERY_FILE="${3}"
-    echo " Query fna/faa file: '${QUERY_FILE}'"
+    QUERY_LIST_FILE="${3}"
+    echo " Query fna/faa file: '${QUERY_LIST_FILE}'"
 else
     echo " Error: query sequence file in fna or faa format (\$3) is not specified!"
     exit 1
@@ -74,13 +75,15 @@ if [[ -n "$4" ]]; then
         QUERY_EXTENSION='faa'
     fi
 
-    if [[ "${QUERY_FILE}" != *.${QUERY_EXTENSION} ]]; then
-        echo " Error: query file extension is inappropriate: '${QUERY_FILE}'"
-        echo " The extension must be '.${QUERY_EXTENSION}'. It is indeed important."
-        echo ' Please provide the correct file.'
-        echo ' Or, if you are sure that the file is correct, just rename it.'
-        exit 1
-    fi
+    while read query_file; do
+        if [[ "${query_file}" != *.${QUERY_EXTENSION} ]]; then
+            echo " Error: query file extension is inappropriate: '${query_file}'"
+            echo " The extension must be '.${QUERY_EXTENSION}'. It is indeed important."
+            echo ' Please provide the correct file.'
+            echo ' Or, if you are sure that the file is correct, just rename it.'
+            exit 1
+        fi
+    done < "${QUERY_LIST_FILE}"
 else
     echo " Error: sequence mode (genome or protein, \$4) is not specified!"
     exit 1
@@ -117,14 +120,16 @@ if [[ ! -d "${TMPDIR}" ]]; then
     mkdir -pv "${TMPDIR}"
 fi
 if [[ ! -d "${TMPDIR}" ]]; then
-    echo "Error: temporary directory does not exist and we cannot craete it: '${TMPDIR}'"
+    echo "Error: temporary directory does not exist and we cannot create it: '${TMPDIR}'"
     exit 1
 fi
 
+set -eu
+
 echo 'Run parameters:'
-echo " - Taxon ID / Name: '${TAXON}'"
+echo " - Taxon ID / Name: '${TAXON_TO_DOWNLOAD}'"
 echo " - Output directory: '${WORKDIR_ROOT}'"
-echo " - Query file path: '${QUERY_FILE}'"
+echo " - Query list file path: '${QUERY_LIST_FILE}'"
 echo " - Sequence mode: '${MODE}'"
 echo " - EzAAI masikol version path: '${EZAAI_MASIKOL}'"
 echo " - Number of CPU threads to use: '${THREADS_NUM}'"
@@ -144,10 +149,7 @@ done
 
 
 # Make useful variables
-query_basename=$(basename "${QUERY_FILE}")
-query_name="${query_basename}%${QUERY_EXTENSION}"
-query_label="${query_basename}"
-datadir="${WORKDIR_ROOT}/${TAXON}_db"
+datadir="${WORKDIR_ROOT}/${TAXON_TO_DOWNLOAD}_db"
 ezaai_db_dir="${datadir}/ezaai-db"
 log_file="${WORKDIR_ROOT}/result.log"
 seq_data_dir="${datadir}/ncbi_dataset/data"
@@ -165,12 +167,12 @@ fi
 # Create necessary dirs and check paths
 echo " "
 if [[ -d "${datadir}" ]]; then
-    echo "Directory ${datadir} уже существует"
+    echo "Directory ${datadir} already exists"
 else
     mkdir -pv "${datadir}"
 fi
 if [ -d "${ezaai_db_dir}" ]; then
-    echo "Directory ${ezaai_db_dir} уже существует"
+    echo "Directory ${ezaai_db_dir} already exists"
 else
     mkdir -pv "${datadir}/ezaai-db"
 fi
@@ -179,78 +181,80 @@ fi
 echo -n '' > "${log_file}"
 
 {
-    echo "----------------------------------------------"
-    echo -e " ${COLOR} Downloading ${seq_mode_plural} of type strains of ${TAXON} ${RESET_COLOR}"
-    echo "----------------------------------------------"
+    if [[ "${TAXON_TO_DOWNLOAD}" != 'off' ]]; then
+        echo "----------------------------------------------"
+        echo -e " ${COLOR} $(date) -- Downloading ${seq_mode_plural} of type strains of ${TAXON_TO_DOWNLOAD} ${RESET_COLOR}"
+        echo "----------------------------------------------"
 
-    if [[ "${MODE}" == 'genome' ]]; then
-        include_arg='genome'
-    elif [[ "${MODE}" == 'protein' ]]; then
-        include_arg='protein'
+        if [[ "${MODE}" == 'genome' ]]; then
+            include_arg='genome'
+        elif [[ "${MODE}" == 'protein' ]]; then
+            include_arg='protein'
+        fi
+
+        zip_file="${WORKDIR_ROOT}/${TAXON_TO_DOWNLOAD}_RefSeq_${MODE}.zip"
+
+        datasets download genome taxon "${TAXON_TO_DOWNLOAD}" \
+            --include "${include_arg}" \
+            --from-type \
+            --dehydrated \
+            --assembly-source RefSeq \
+            --filename "${zip_file}"
+
+        unzip -d ${datadir} "${zip_file}"
+
+        datasets rehydrate --directory ${datadir}
+
+        # Rename 'protein.faa' files to [ASSEMBLY_ID].faa
+        if [[ "${MODE}" == 'protein' ]]; then
+            for prot_dir in ${seq_data_dir}/GCF_*; do
+                dir_basename=$(basename "${prot_dir}")
+                prot_file="${prot_dir}/protein.faa"
+                if [[ -f "${prot_file}" ]]; then
+                    mv -v "${prot_dir}/protein.faa" "${prot_dir}/${dir_basename}.faa"
+                fi
+            done
+        fi
+
+        echo " $(date) -- Creating taxonomy file: '${taxonomy_file}'..."
+
+        # Create the file and add header
+        echo -e "genome_id\tspecies_name" \
+            > "${taxonomy_file}"
+
+        assembly_data_report="${seq_data_dir}/assembly_data_report.jsonl"
+        # Select assembly IDs
+        cat "${assembly_data_report}" \
+            | grep -Eo '"accession":"GCF_[0-9\.]+"' \
+            | grep -Eo 'GCF_[0-9\.]+' \
+            > "${TMPDIR}/genome_ids.txt"
+        # Select species names
+        cat "${assembly_data_report}" \
+            | grep -Eo '"submittedSpecies":"[^"]+"' \
+            | sed 's/"submittedSpecies":"//' \
+            | sed 's/"//' \
+            > "${TMPDIR}/species_names.txt"
+        # Combine assembly IDs and species names into single TSV file
+        #   of two rows
+        paste -d '\t' \
+            "${TMPDIR}/genome_ids.txt" "${TMPDIR}/species_names.txt" \
+            >> "${taxonomy_file}"
+        rm -v "${TMPDIR}/genome_ids.txt" "${TMPDIR}/species_names.txt"
+        echo -e "query\tNA NA" \
+            >> "${taxonomy_file}"
+        echo ' Taxonomy file is created.'
     fi
-
-    zip_file="${WORKDIR_ROOT}/${TAXON}_RefSeq_${MODE}.zip"
-
-    datasets download genome taxon "${TAXON}" \
-        --include "${include_arg}" \
-        --from-type \
-        --dehydrated \
-        --assembly-source RefSeq \
-        --filename "${zip_file}"
-
-    unzip -d ${datadir} "${zip_file}"
-
-    datasets rehydrate --directory ${datadir}
-
-    # Rename 'protein.faa' files to [ASSEMBLY_ID].faa
-    if [[ "${MODE}" == 'protein' ]]; then
-        for prot_dir in ${seq_data_dir}/GCF_*; do
-            dir_basename=$(basename "${prot_dir}")
-            prot_file="${prot_dir}/protein.faa"
-            if [[ -f "${prot_file}" ]]; then
-                mv -v "${prot_dir}/protein.faa" "${prot_dir}/${dir_basename}.faa"
-            fi
-        done
-    fi
-
-    echo " Creating taxonomy file: '${taxonomy_file}'..."
-
-    # Craete the file and add header
-    echo -e "genome_id\tspecies_name" \
-        > "${taxonomy_file}"
-
-    assembly_data_report="${seq_data_dir}/assembly_data_report.jsonl"
-    # Select assembly IDs
-    cat "${assembly_data_report}" \
-        | grep -Eo '"accession":"GCF_[0-9\.]+"' \
-        | grep -Eo 'GCF_[0-9\.]+' \
-        > "${TMPDIR}/genome_ids.txt"
-    # Select species names
-    cat "${assembly_data_report}" \
-        | grep -Eo '"submittedSpecies":"[^"]+"' \
-        | sed 's/"submittedSpecies":"//' \
-        | sed 's/"//' \
-        > "${TMPDIR}/species_names.txt"
-    # Combine assembly IDs and species names into single TSV file
-    #   of two rows
-    paste -d '\t' \
-        "${TMPDIR}/genome_ids.txt" "${TMPDIR}/species_names.txt" \
-        >> "${taxonomy_file}"
-    rm -v "${TMPDIR}/genome_ids.txt" "${TMPDIR}/species_names.txt"
-    echo -e "query\tNA NA" \
-        >> "${taxonomy_file}"
-    echo ' Taxonomy file is created.'
-
 
     echo "-------------------------------------------------------------------"
-    echo -e " ${COLOR} Starting EzAAI - make profile DB from sequences ${RESET_COLOR}"
+    echo -e " ${COLOR} $(date) -- Starting EzAAI - make profile DB from sequences ${RESET_COLOR}"
     echo "-------------------------------------------------------------------"
 
-    # Check if seq_data_dir exists
-    if [ ! -d "${seq_data_dir}" ]; then
-        echo "Error: sequence data directory does not exist: '${seq_data_dir}'"
-        exit 1
-    fi
+    # TODO: remove
+    # # Check if seq_data_dir exists
+    # if [ ! -d "${seq_data_dir}" ]; then
+    #     echo "Error: sequence data directory does not exist: '${seq_data_dir}'"
+    #     exit 1
+    # fi
 
     if [[ "${MODE}" == 'genome' ]]; then
         ezaai_subprogram='extract'
@@ -260,18 +264,18 @@ echo -n '' > "${log_file}"
         ezaai_convert_s_option='-s prot'
     fi
 
-    # Проходим по всем подкаталогам в указанной директории
+    # Iterate over input files
     find "${seq_data_dir}" -type f -name "*.${QUERY_EXTENSION}" | while read -r seq_file; do
 
-        # Извлекаем имя файла без расширения
+        # Get file name without extension
         file_dir_name=$(dirname "${seq_file}")
         file_basename=$(basename "${seq_file}")
         genome_id=$(basename "${file_dir_name}")
 
         db_file="${ezaai_db_dir}/${genome_id}.db"
 
-        echo "----------------------------"
-        echo "Путь к файлу: '${seq_file}'"
+        echo -e "${COLOR} ------------ $(date) --------------- ${RESET_COLOR}"
+        echo "Input file: '${seq_file}'"
         echo "Genome ID: '${genome_id}'"
 
         # Example for genome:
@@ -292,19 +296,25 @@ echo -n '' > "${log_file}"
             -l "${genome_id}"
 
     done
-    echo "----------------------------"
 
-    # Agg query genome to the database
-    genome_id='query'
-    file_basename=$(basename "${QUERY_FILE}")
-    db_file="${ezaai_db_dir}/${genome_id}.db"
-    ezaai "${ezaai_subprogram}" ${ezaai_convert_s_option} \
-        -i "${QUERY_FILE}" \
-        -o "${db_file}" \
-        -l "${genome_id}"
+    # Add query sequences to the database
+    while read query_file; do
+        file_basename=$(basename "${query_file}")
+        genome_id="${file_basename%.${QUERY_EXTENSION}}"
+        db_file="${ezaai_db_dir}/${genome_id}.db"
+
+        echo -e "${COLOR} ------------ $(date) --------------- ${RESET_COLOR}"
+        echo "Input file: '${query_file}'"
+        echo "Genome ID: '${genome_id}'"
+
+        ezaai "${ezaai_subprogram}" ${ezaai_convert_s_option} \
+            -i "${query_file}" \
+            -o "${db_file}" \
+            -l "${genome_id}"
+    done < "${QUERY_LIST_FILE}"
 
     echo "----------------------------------------------------------------------"
-    echo -e " ${COLOR} Starting EzAAI - calculate AAI value from profile DBs ${RESET_COLOR}"
+    echo -e "${COLOR} $(date) Starting EzAAI - calculate AAI value from profile DBs ${RESET_COLOR}"
     echo "----------------------------------------------------------------------"
 
     java -jar "${EZAAI_MASIKOL}" \
@@ -317,18 +327,21 @@ echo -n '' > "${log_file}"
         -o "${result_tsv}"
 
     echo "---------------------------------------------------------------------------------"
-    echo -e " ${COLOR} Starting EzAAI - hierarchical clustering of taxa with AAI values ${RESET_COLOR}"
+    echo -e " ${COLOR} $(date) Starting EzAAI - hierarchical clustering of taxa with AAI values ${RESET_COLOR}"
     echo "---------------------------------------------------------------------------------"
 
     ezaai cluster \
         -i "${result_tsv}" \
         -o "${result_tree}"
 
+    rm -v ${ezaai_db_dir}/*.db
+    rmdir -v "${ezaai_db_dir}"
+
 } |& tee "${log_file}"
 
 echo ""
 echo "---------------------------------------------------------------------------------"
-echo -e " ${COLOR} Completed! ${RESET_COLOR}"
+echo -e "${COLOR} $(date) -- Completed! ${RESET_COLOR}"
 echo " Result table: '${result_tsv}'"
 echo " Result tree: '${result_tree}'"
 echo " Taxonomy file: '${taxonomy_file}'"
