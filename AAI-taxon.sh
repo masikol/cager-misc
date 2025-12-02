@@ -149,7 +149,9 @@ done
 
 
 # Make useful variables
-datadir="${WORKDIR_ROOT}/${TAXON_TO_DOWNLOAD}_db"
+
+TAXON_NO_SPACES=${TAXON_TO_DOWNLOAD/ /_}
+datadir="${WORKDIR_ROOT}/${TAXON_NO_SPACES}_db"
 ezaai_db_dir="${datadir}/ezaai-db"
 log_file="${WORKDIR_ROOT}/result.log"
 seq_data_dir="${datadir}/ncbi_dataset/data"
@@ -192,8 +194,12 @@ echo -n '' > "${log_file}"
             include_arg='protein'
         fi
 
-        zip_file="${WORKDIR_ROOT}/${TAXON_TO_DOWNLOAD}_RefSeq_${MODE}.zip"
+        zip_file="${WORKDIR_ROOT}/${TAXON_NO_SPACES}_RefSeq_${MODE}.zip"
 
+        # useful options:
+        # --assembly-level
+        # --assembly-source
+        # --from-type
         datasets download genome taxon "${TAXON_TO_DOWNLOAD}" \
             --include "${include_arg}" \
             --from-type \
@@ -248,13 +254,6 @@ echo -n '' > "${log_file}"
     echo "-------------------------------------------------------------------"
     echo -e " ${COLOR} $(date) -- Starting EzAAI - make profile DB from sequences ${RESET_COLOR}"
     echo "-------------------------------------------------------------------"
-
-    # TODO: remove
-    # # Check if seq_data_dir exists
-    # if [ ! -d "${seq_data_dir}" ]; then
-    #     echo "Error: sequence data directory does not exist: '${seq_data_dir}'"
-    #     exit 1
-    # fi
 
     if [[ "${MODE}" == 'genome' ]]; then
         ezaai_subprogram='extract'

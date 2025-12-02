@@ -1,5 +1,20 @@
 # cager-misc changelog
 
+## 2025-12-02
+
+Add script `ANI-taxon.sh`: same as `AAI-taxon.sh`, but calculates ANI values using fastANI.
+
+Update `AAI-taxon.sh`:
+
+1. **Major interface update.** Now, the third argument is not an input FASTA file, but a file in which input FASTA files are listed, one per line.
+2. Now, one can pass `"off"` as the first argument. In this case, no sequences will be downloaded from RefSeq. Instead, the script will process only local files.
+
+### Version changes:
+
+- AAI-taxon.sh: `1.0.b -> 2.0.a`
+
+- ANI-taxon.sh: `-> 1.0.a`
+
 ## 2025-03-12
 
 Remove useless `genome_id_file_name_map` from `AAI-taxon.sh`.
