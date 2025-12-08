@@ -14,7 +14,7 @@ set -e
 #                  ezaai
 #                  A jar file of ezaai version 1.2.3_masikol.0.2: EzAAI-1.2.3_masikol.0.2-jar-with-dependencies.jar
 
-VERSION='2.0.a'
+VERSION='2.0.b'
 COLOR='\x1B[0;33m'
 RESET_COLOR='\x1B[0m'
 
@@ -292,7 +292,8 @@ echo -n '' > "${log_file}"
         ezaai "${ezaai_subprogram}" ${ezaai_convert_s_option} \
             -i "${seq_file}" \
             -o "${db_file}" \
-            -l "${genome_id}"
+            -l "${genome_id}" \
+            -tmp "${TMPDIR}"
 
     done
 
@@ -309,7 +310,8 @@ echo -n '' > "${log_file}"
         ezaai "${ezaai_subprogram}" ${ezaai_convert_s_option} \
             -i "${query_file}" \
             -o "${db_file}" \
-            -l "${genome_id}"
+            -l "${genome_id}" \
+            -tmp "${TMPDIR}"
     done < "${QUERY_LIST_FILE}"
 
     echo "----------------------------------------------------------------------"

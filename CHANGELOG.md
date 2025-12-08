@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2025-12-08
+
+Update `AAI-taxon.sh`: fix a bug that would cause `ezaai convert` to use `/tmp/ezaai` as tmp dir.
+
+### Version changes:
+
+- AAI-taxon.sh: `2.0.a -> 2.0.b`
+
 ## 2025-12-02
 
 Add script `ANI-taxon.sh`: same as `AAI-taxon.sh`, but calculates ANI values using fastANI.
