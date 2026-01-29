@@ -11,7 +11,7 @@ set -e
 #                  ncbi datasets
 #                  fastANI
 
-VERSION='1.0.a'
+VERSION='1.0.b'
 COLOR='\x1B[0;33m'
 RESET_COLOR='\x1B[0m'
 
@@ -120,7 +120,7 @@ fastANI_input_list_file="${fastANI_work_dir}/input_file_list.txt"
 raw_result_tsv="${WORKDIR_ROOT}/raw_ani_result.tsv"
 result_tsv="${WORKDIR_ROOT}/ani_result.tsv"
 log_file="${WORKDIR_ROOT}/result.log"
-seq_data_dir="${datadir}/ncbi_dataset/data"
+seq_data_dir="${fastANI_work_dir}/ncbi_dataset/data"
 taxonomy_file="${WORKDIR_ROOT}/taxonomy.tsv"
 
 # Create necessary dirs and check paths
@@ -145,7 +145,7 @@ echo -n '' > "${log_file}"
         echo -e " ${COLOR} $(date) -- Downloading genomes of type strains of ${TAXON_TO_DOWNLOAD} ${RESET_COLOR}"
         echo "----------------------------------------------"
 
-        zip_file="${WORKDIR_ROOT}/${TAXON_NO_SPACES}_RefSeq_${MODE}.zip"
+        zip_file="${WORKDIR_ROOT}/${TAXON_NO_SPACES}_RefSeq_genome.zip"
 
         # useful options:
         # --assembly-level
@@ -173,19 +173,19 @@ echo -n '' > "${log_file}"
         cat "${assembly_data_report}" \
             | grep -Eo '"accession":"GCF_[0-9\.]+"' \
             | grep -Eo 'GCF_[0-9\.]+' \
-            > "${TMPDIR}/genome_ids.txt"
+            > "${WORKDIR_ROOT}/genome_ids.txt"
         # Select species names
         cat "${assembly_data_report}" \
             | grep -Eo '"submittedSpecies":"[^"]+"' \
             | sed 's/"submittedSpecies":"//' \
             | sed 's/"//' \
-            > "${TMPDIR}/species_names.txt"
+            > "${WORKDIR_ROOT}/species_names.txt"
         # Combine assembly IDs and species names into single TSV file
         #   of two rows
         paste -d '\t' \
-            "${TMPDIR}/genome_ids.txt" "${TMPDIR}/species_names.txt" \
+            "${WORKDIR_ROOT}/genome_ids.txt" "${WORKDIR_ROOT}/species_names.txt" \
             >> "${taxonomy_file}"
-        rm -v "${TMPDIR}/genome_ids.txt" "${TMPDIR}/species_names.txt"
+        rm -v "${WORKDIR_ROOT}/genome_ids.txt" "${WORKDIR_ROOT}/species_names.txt"
         echo -e "query\tNA NA" \
             >> "${taxonomy_file}"
         echo ' Taxonomy file is created.'

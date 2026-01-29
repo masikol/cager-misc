@@ -1,5 +1,13 @@
 # cager-misc changelog
 
+## 2026-01-29
+
+Update `ANI-taxon.sh`: fix some shameful bugs, I won’t even mention them...
+
+### Version changes:
+
+- ANI-taxon.sh: `1.0.a -> 1.0.b`
+
 ## 2025-12-08
 
 Update `AAI-taxon.sh`: fix a bug that would cause `ezaai convert` to use `/tmp/ezaai` as tmp dir.
