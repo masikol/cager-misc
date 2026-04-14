@@ -15,7 +15,7 @@
 #     Lpb_B-492_v1b \
 #     463585 I 469240
 
-# __version__ = '1.0.a'
+__version__ = '1.1.a'
 
 
 import os
@@ -24,14 +24,17 @@ import argparse
 import subprocess as sp
 
 
+UID_SEP = '$/$'
+
+
 def main():
     args = parse_args()
     validate_args(args)
     fF_flags_str = make_fF_flags_str(args.f, args.F)
-    read_ids_1 = get_read_ids_for_pos(args.bam, args.rname, args.pos_1, fF_flags_str)
-    read_ids_2 = get_read_ids_for_pos(args.bam, args.rname, args.pos_2, fF_flags_str)
-    result_read_ids = perform_operation(read_ids_1, read_ids_2, args.operation)
-    output_result(result_read_ids)
+    read_uids_1 = get_read_uids_for_pos(args.bam, args.rname, args.pos_1, fF_flags_str)
+    read_uids_2 = get_read_uids_for_pos(args.bam, args.rname, args.pos_2, fF_flags_str)
+    result_read_uids = perform_operation(read_uids_1, read_uids_2, args.operation)
+    output_result(result_read_uids)
 # end def
 
 
@@ -158,7 +161,7 @@ def make_fF_flags_str(args_f, args_F):
 # end def
 
 
-def get_read_ids_for_pos(bam_fpath, rname, pos, fF_flags_str):
+def get_read_uids_for_pos(bam_fpath, rname, pos, fF_flags_str):
 
     cmd = ' '.join(
         [
@@ -185,28 +188,47 @@ def get_read_ids_for_pos(bam_fpath, rname, pos, fF_flags_str):
         sys.exit(1)
     # end if
 
-    lines = map(
-        lambda l: l.split('\t')[0].strip(),
+    read_uids = map(
+        sam_line_to_read_uid,
         outs.splitlines()
     )
-    return frozenset(lines)
+    return frozenset(read_uids)
 # end def
 
 
-def perform_operation(read_ids_1, read_ids_2, operation):
+def sam_line_to_read_uid(line):
+    # QNAME (idx 0), FLAG (idx 1) and POS (idx 3) combined give us a Unique Read Id
+    line_vals = line.split('\t')[:4]
+    return UID_SEP.join((
+        line_vals[0].strip(),
+        line_vals[1].strip(),
+        line_vals[3].strip(),
+    ))
+# end def
+
+def read_uid_to_read_id(read_uid):
+    return read_uid.partition(UID_SEP)[0]
+# end def
+
+
+def perform_operation(read_uids_1, read_uids_2, operation):
     if operation == 'I':
-        return read_ids_1 & read_ids_2
+        return read_uids_1 & read_uids_2
     elif operation == 'U':
-        return read_ids_1 | read_ids_2
+        return read_uids_1 | read_uids_2
     elif operation == 'D':
-        return read_ids_1 - read_ids_2
+        return read_uids_1 - read_uids_2
     # end if
 # end def
 
 
-def output_result(result_read_ids):
+def output_result(result_read_uids):
+    result_read_ids = map(
+        read_uid_to_read_id,
+        result_read_uids
+    )
     for s in sorted(result_read_ids):
-        print(s)
+        sys.stdout.write('{}\n'.format(s))
     # end for
 # end def
 

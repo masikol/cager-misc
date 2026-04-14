@@ -1,5 +1,14 @@
 # cager-misc changelog
 
+## 2026-04-14
+
+Update `samtools_setop.py`: now it performs set operations on unique read mappings instead of just read ids (QNAME field in SAM/BAM files), which may not be unique within a BAM file.
+Fix old naming mistake: `samtool_setop.py` -> `samtools_setop.py`
+
+### Version changes:
+
+- samtools_setop.py: `1.0.a -> 1.1.a`
+
 ## 2026-01-29
 
 Update `ANI-taxon.sh`: fix some shameful bugs, I won’t even mention them...
