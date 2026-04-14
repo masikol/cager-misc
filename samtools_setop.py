@@ -3,7 +3,7 @@
 # The script performs set operations (intersection, unuin, difference) on read IDs that are mapped to different reference positions.
 
 # Usage:
-# python3 samtools_setop.py [-f FLAG] [-F FLAG] <BAM> <RNAME> <POS1> <SET_OPERATION> <POS2>
+# python3 samtools_setop.py [-f FLAG] [-F FLAG] [--samtools /path/to/samtools] <BAM> <RNAME> <POS1> <SET_OPERATION> <POS2>
 # allowed SET_OPERATION values:
 #   'I': Intersection
 #   'D': Difference
@@ -15,7 +15,7 @@
 #     Lpb_B-492_v1b \
 #     463585 I 469240
 
-__version__ = '1.1.a'
+__version__ = '1.2.a'
 
 
 import os
@@ -25,14 +25,27 @@ import subprocess as sp
 
 
 UID_SEP = '$/$'
+DEFAULT_SAMTOOLS = 'samtools'
 
 
 def main():
     args = parse_args()
     validate_args(args)
     fF_flags_str = make_fF_flags_str(args.f, args.F)
-    read_uids_1 = get_read_uids_for_pos(args.bam, args.rname, args.pos_1, fF_flags_str)
-    read_uids_2 = get_read_uids_for_pos(args.bam, args.rname, args.pos_2, fF_flags_str)
+    read_uids_1 = get_read_uids_for_pos(
+        args.bam,
+        args.rname,
+        args.pos_1,
+        args.samtools,
+        fF_flags_str
+    )
+    read_uids_2 = get_read_uids_for_pos(
+        args.bam,
+        args.rname,
+        args.pos_2,
+        args.samtools,
+        fF_flags_str
+    )
     result_read_uids = perform_operation(read_uids_1, read_uids_2, args.operation)
     output_result(result_read_uids)
 # end def
@@ -85,10 +98,20 @@ def parse_args():
         action='append',
         default=list()
     )
+    parser.add_argument(
+        '--samtools',
+        help='path to samtools executable',
+        required=False,
+        default=DEFAULT_SAMTOOLS
+    )
+
     args = parser.parse_args()
 
     args.bam = os.path.abspath(args.bam)
     args.operation = args.operation.upper()
+    if args.samtools != DEFAULT_SAMTOOLS:
+        args.samtools = os.path.abspath(args.samtools)
+    # end if
 
     return args
 # end def
@@ -129,6 +152,18 @@ def validate_args(args):
     for F_value in args.F:
         validate_positive_integer(F_value, 'F')
     # end for
+
+    if args.samtools != DEFAULT_SAMTOOLS:
+        if not os.path.isfile(args.samtools):
+            sys.stderr.write('Error: file does not exist: `{}`\n'.format(args.samtools))
+            sys.exit(1)
+        # end for
+        if not os.access(args.samtools, os.X_OK):
+            sys.stderr.write('Error: file is not executable: `{}`\n'.format(args.samtools))
+            sys.exit(1)
+        # end for
+    # end if
+    validate_samtools(args.samtools)
 # end def
 
 def validate_positive_integer(arg, argname):
@@ -139,6 +174,32 @@ def validate_positive_integer(arg, argname):
                 arg
             )
         )
+        sys.exit(1)
+    # end if
+# end def
+
+
+def validate_samtools(samtools_fpath):
+    cmd = ' '.join([
+        samtools_fpath,
+        'version',
+    ])
+    pipe = sp.Popen(
+        cmd,
+        shell=True,
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+        encoding='utf-8'
+    )
+    _, errs = pipe.communicate()
+
+    if pipe.returncode != 0:
+        sys.stderr.write('Error!\n')
+        sys.stderr.write(
+            'Cannot execute `{} version` to check it\n'.format(samtools_fpath)
+        )
+        sys.stderr.write(errs)
+        sys.stderr.write('\n')
         sys.exit(1)
     # end if
 # end def
@@ -161,11 +222,12 @@ def make_fF_flags_str(args_f, args_F):
 # end def
 
 
-def get_read_uids_for_pos(bam_fpath, rname, pos, fF_flags_str):
+def get_read_uids_for_pos(bam_fpath, rname, pos, samtools_fpath, fF_flags_str):
 
     cmd = ' '.join(
         [
-            'samtools view',
+            samtools_fpath,
+            'view',
             fF_flags_str,
             bam_fpath,
             '{}:{}-{}'.format(rname, pos, pos),
