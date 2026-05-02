@@ -4,7 +4,6 @@ Miscellaneous bioinformatic tools from [Laboratory](https://mbio.bas-net.by/cage
 
 List of tools with links to manuals:
 - [sum-up-snv](https://www.github.com/masikol/cager-misc/wiki/sum-up-snv): a script for counting coverage and single nucleotide variants at a single specified position in SAM/BAM file;
-- [cigar_maplen](https://www.github.com/masikol/cager-misc/wiki/cigar_maplen): a script for manual inspection of structural variants, mainly for long reads. It prints which portion of a read is actually mapped, and which portions are clipped from each side;
 - [samtools_setop](https://www.github.com/masikol/cager-misc/wiki/samtools_setop): the script performs set operations (intersection, union, difference) on read IDs that are mapped to arbitrary reference positions;
 - [gla-glar](https://www.github.com/masikol/cager-misc/wiki/gla-glar): “GLAde GLARer”: the script finds long intergenic and inter-CDS regions in GenBank files;
 - AAI-taxon.sh (Help page is yet to be done): the script calculates Average Amino acid Identities between query genomes and all type strain genomes of a given taxon;
@@ -23,3 +22,4 @@ List of tools with links to manuals:
 - [seqator](https://www.github.com/masikol/cager-misc/wiki/seqator): the script moves `.dna` [SPAdes](http://cab.spbu.ru/software/spades/) contigs with coverage less than specified one from `contigs/` directory to directory `cov_below_x/`;
 - combinator-FQ: genome assembly facilitation. This script is now moved to the separate repository: [https://github.com/masikol/combinator-FQ](https://github.com/masikol/combinator-FQ);
 - kromsatel: a tool for splitting chimeric nanopore amplicon reads. This script is now moved to the separate repository: [https://github.com/masikol/kromsatel](https://github.com/masikol/kromsatel);
+- cigar_maplen: was a script for manual inspection of structural variants, mainly for long reads. It prints which portion of a read is actually mapped, and which portions are clipped from each side. It is a Rust program now: [GitHub repo](https://github.com/masikol/cigar_collapser), [Rust crate](https://crates.io/crates/cigar_collapser);

@@ -1,5 +1,9 @@
 # cager-misc changelog
 
+## 2026-05-02
+
+Remove cigar_maplen. It is now a Rust program: [https://github.com/masikol/cigar_collapser](https://github.com/masikol/cigar_collapser), [https://crates.io/crates/cigar_collapser](https://crates.io/crates/cigar_collapser).
+
 ## 2026-04-14
 
 ### One.
